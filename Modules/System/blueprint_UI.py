@@ -139,13 +139,27 @@ class Blueprint_UI(QtWidgets.QDialog):
     
     
     def install_module(self, module, *args):
+        basename = "instance_"
+        
+        cmds.namespace(setNamespace=":")
+        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True) 
+        
+        for i in range(len(namespaces)):
+            if namespaces[i].find("__") != -1:
+                namespaces[i] = namespaces[i].partition("__")[2]
+        
+        
+        new_suffix = utils.find_highest_trailing_number(namespaces, basename) + 1
+        user_spec_name = f"{basename}{str(new_suffix)}"
+        
+        
         try:
             module_path = f"Blueprint.{module}"
             mod = __import__(module_path, fromlist=[module])
             importlib.reload(mod)
             
             ModuleClass = getattr(mod, mod.CLASS_NAME)
-            module_instance = ModuleClass()
+            module_instance = ModuleClass(user_spec_name)
             module_instance.install()
             
             

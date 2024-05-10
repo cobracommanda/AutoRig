@@ -24,4 +24,21 @@ def find_all_files(relative_directory, file_extension):
             
             
     return return_files
+
+
+def find_highest_trailing_number(names, basename):
+    import re
+    
+    highest_value = 0
+    
+    for n in names:
+        if n.find(basename) == 0:
+            suffix = n.partition(basename)[2]
+            if re.match("^[0-9]*$", suffix):
+                numerical_element = int(suffix)
+
+                if numerical_element > highest_value:
+                    highest_value = numerical_element
+            
+    return highest_value
         

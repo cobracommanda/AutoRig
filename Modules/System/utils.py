@@ -27,7 +27,7 @@ def find_all_files(relative_directory, file_extension):
 
 
 def find_highest_trailing_number(names, basename):
-    import re
+    import re 
     
     highest_value = 0
     
@@ -42,3 +42,10 @@ def find_highest_trailing_number(names, basename):
             
     return highest_value
         
+        
+def strip_leading_namespace(nodename):
+    if str(nodename).find(":") == -1:
+        return None
+    split_string = str(nodename).partition(":")
+    return [split_string[0], split_string[2]]
+    

@@ -88,7 +88,8 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     cmds.setAttr(f"{end_locator}.visibility", 0)
     
     if container != None:
-        cmds.container(container, e=1, an=contained_nodes, ihb=1)
+        add_node_to_container(container, contained_nodes, ihb=1)
+        
         
     return_dict = {}
     return_dict['ik_handle'] = ik_handle
@@ -113,4 +114,20 @@ def force_scene_update():
     
     cmds.setToolTo("selectSuperContext")
     
+def add_node_to_container(container, nodes_in, ihb=False, include_shapes=False, force=False):
+    nodes = []
+    if isinstance(nodes_in, list):
+        nodes = list(nodes_in)
+    else:
+        nodes = [nodes_in]
 
+        
+    conversion_nodes = []    
+    for node in nodes:
+        node_conversion_nodes = cmds.listConnections(node, source=True, destination=True)
+        node_conversion_nodes = cmds.ls(node_conversion_nodes, type="unitConversion")
+        
+        conversion_nodes.extend(node_conversion_nodes)
+        
+    nodes.extend(conversion_nodes)
+    cmds.container(container, edit=True, addNode=nodes, ihb=ihb, includeShapes=include_shapes, force=force)

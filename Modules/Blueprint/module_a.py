@@ -23,7 +23,8 @@ class ModuleA():
         
         if not cmds.objExists(self.container_name):
             cmds.container(name=self.container_name)
-        cmds.container(self.container_name, edit=True, addNode=self.module_grp, ihb=True)
+        utils.add_node_to_container(self.container_name, self.module_grp, ihb=1)
+        
         
         cmds.select(clear=True)
         
@@ -43,7 +44,7 @@ class ModuleA():
             joints.append(joint_name_full)
             
             
-            cmds.container(self.container_name, edit=True, addNode=joint_name_full)
+            utils.add_node_to_container(self.container_name, joint_name_full)
             cmds.container(self.container_name, edit=True, publishAndBind=[f"{joint_name_full}.rotate", f"{joint_name}_R"])
             cmds.container(self.container_name, edit=True, publishAndBind=[f"{joint_name_full}.rotateOrder", f"{joint_name}_rotateOrder"])
               
@@ -59,7 +60,7 @@ class ModuleA():
             translations_controls.append(self.create_translation_controller_at_joints(joint))
             
         root_joint_point_constraint = cmds.pointConstraint(translations_controls[0], joints[0], mo=0, n=f"{joints[0]}_pointConstraint")
-        cmds.container(self.container_name, e=1, an=root_joint_point_constraint)
+        utils.add_node_to_container(self.container_name, root_joint_point_constraint)
         
         
         # Setup stretchy joint segments
@@ -76,7 +77,8 @@ class ModuleA():
         cmds.file(pos_control_file, i=True)
         
         container = cmds.rename("translation_control_container", f"{joint}_translation_control_container")
-        cmds.container(self.container_name, edit=True, addNode=container)
+        
+        utils.add_node_to_container(self.container_name, container)
         
         for node in cmds.container(container, q=True, nodeList=True):
             cmds.rename(node, f"{joint}_{node}", ignoreShape=True)
@@ -116,7 +118,7 @@ class ModuleA():
         
         ik_handle = ik_nodes['ik_handle']
         root_locator = ik_nodes['root_locator']
-        end_locator = ik_nodes['end_locator']
+        end_locator = ik_nodes['end_locator'] 
         # root_locator_point_constraint = ik_nodes['root_locator_point_constraint']
         # ik_handle_point_constraint = ik_nodes['ik_handle_point_constraint']
         # ik_effector  = ik_nodes['ik_effector']
@@ -125,8 +127,9 @@ class ModuleA():
         
         child_point_constraint = cmds.pointConstraint(child_translation_control, end_locator, mo=0, n=f"{end_locator}_pointConstraint")[0]
         
-        cmds.container(self.container_name, e=1, an=[pole_vector_locator_grp, parent_constraint, child_point_constraint], ihb=1) 
+        utils.add_node_to_container(self.container_name,[pole_vector_locator_grp, parent_constraint, child_point_constraint], ihb=1)
+        
         for node in [ik_handle, root_locator, end_locator]:
             cmds.parent(node, self.joints_grp, a=1)
-            cmds.setAttr(f"{node}.visiblilty", 0)
+            cmds.setAttr(f"{node}.visibility", 0)
         

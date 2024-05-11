@@ -93,10 +93,24 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     return_dict = {}
     return_dict['ik_handle'] = ik_handle
     return_dict['ik_handle_point_constraint'] = ik_handle_point_constraint
-    return_dict['ik_effector'] = ik_effector
+    return_dict['ik_effector'] = ik_effector 
     return_dict['root_locator'] = root_locator
     return_dict['root_locator_point_constraint'] = root_locator_point_constraint
     return_dict['end_locator'] = end_locator
     return_dict['poleVectorObject'] = poleVectorObject
     
     return return_dict
+
+
+def force_scene_update():
+    cmds.setToolTo("moveSuperContext")
+    nodes = cmds.ls()
+    
+    for node in nodes:
+        cmds.select(node, r=1)
+        
+    cmds.select(cl=1)
+    
+    cmds.setToolTo("selectSuperContext")
+    
+

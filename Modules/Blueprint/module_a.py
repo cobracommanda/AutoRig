@@ -57,8 +57,19 @@ class ModuleA():
         translations_controls = []
         for joint in joints:
             translations_controls.append(self.create_translation_controller_at_joints(joint))
+            
+        root_joint_point_constraint = cmds.pointConstraint(translations_controls[0], joints[0], mo=0, n=f"{joints[0]}_pointConstraint")
+        cmds.container(self.container_name, e=1, an=root_joint_point_constraint)
         
+        
+        # Setup stretchy joint segments
+        for index in range(len(joints) - 1):
+            self.setup_stretchy_joint_segment(joints[index], joints[index+1])
+        
+        utils.force_scene_update()
         cmds.lockNode(self.container_name, lock=True, lockUnpublished=True)
+        
+        
 
     def create_translation_controller_at_joints(self, joint):
         pos_control_file =  f"{os.environ['RIGGING_TOOL_ROOT']}/ControlObjects/Blueprint/translation_control.ma"
@@ -86,4 +97,36 @@ class ModuleA():
     
     def get_translation_control(self, joint_name):
         return f"{joint_name}_translation_control"
+        
+    def setup_stretchy_joint_segment(self, parent_joint, child_joint): 
+        parent_translation_control = self.get_translation_control(parent_joint)
+        child_translation_control = self.get_translation_control(child_joint)
+        
+        
+        pole_vector_locator = cmds.spaceLocator(n=f"{parent_translation_control}_poleVectorLocator")[0]
+        pole_vector_locator_grp = cmds.group(n=f"{pole_vector_locator}_parentConstraintGrp")
+        
+        cmds.parent(pole_vector_locator_grp, self.module_grp, a=1)
+        parent_constraint = cmds.parentConstraint(parent_translation_control, pole_vector_locator_grp, mo=0)[0]
+        cmds.setAttr(f"{pole_vector_locator}.visibility", 0)
+        cmds.setAttr(f"{pole_vector_locator}.ty", -0.5)
+        
+        ik_nodes = utils.basic_stretchy_IK(parent_joint, child_joint, container=self.container_name, lockMinimumLength=False,
+                                           poleVectorObject=pole_vector_locator, scaleCorrectionAttribute=None)
+        
+        ik_handle = ik_nodes['ik_handle']
+        root_locator = ik_nodes['root_locator']
+        end_locator = ik_nodes['end_locator']
+        # root_locator_point_constraint = ik_nodes['root_locator_point_constraint']
+        # ik_handle_point_constraint = ik_nodes['ik_handle_point_constraint']
+        # ik_effector  = ik_nodes['ik_effector']
+        # root_locator = ik_nodes['root_locator']
+        # poleVectorObject = ik_nodes['poleVectorObject']
+        
+        child_point_constraint = cmds.pointConstraint(child_translation_control, end_locator, mo=0, n=f"{end_locator}_pointConstraint")[0]
+        
+        cmds.container(self.container_name, e=1, an=[pole_vector_locator_grp, parent_constraint, child_point_constraint], ihb=1) 
+        for node in [ik_handle, root_locator, end_locator]:
+            cmds.parent(node, self.joints_grp, a=1)
+            cmds.setAttr(f"{node}.visiblilty", 0)
         

@@ -57,6 +57,8 @@ class ModuleA():
              
         cmds.parent(joints[0], self.joints_grp, absolute=True)
         
+        self.initialize_module_transform(self.joint_info[0][1])
+        
         translations_controls = []
         for joint in joints:
             translations_controls.append(self.create_translation_controller_at_joints(joint))
@@ -86,6 +88,8 @@ class ModuleA():
             cmds.rename(node, f"{joint}_{node}", ignoreShape=True)
              
         control = f"{joint}_translation_control"
+        
+        cmds.parent(control, self.module_transform, a=1)
         
         joint_pos = cmds.xform(joint, q=True, worldSpace=True, translation=True)
         cmds.xform(control, worldSpace=True, absolute=True, translation=joint_pos)
@@ -161,10 +165,32 @@ class ModuleA():
         cmds.parent(object, constrained_grp, a=1)
         
         parent_constraint = cmds.parentConstraint(parent_joint, constrained_grp, mo=0)[0]
+        
         cmds.connectAttr(f"{child_joint}.translateX", f"{constrained_grp}.scaleX" )
         
-        utils.add_node_to_container(object_container, [constrained_grp, parent_constraint], ihb=1)
+        scale_constraint = cmds.scaleConstraint(self.module_transform, constrained_grp, sk="x", mo=0)[0]
+        
+        utils.add_node_to_container(object_container, [constrained_grp, parent_constraint, scale_constraint], ihb=1)
         utils.add_node_to_container(self.container_name, object_container)
         
         return (object_container, object, constrained_grp)
+    
+    
+    def initialize_module_transform(self, root_pos):
+        control_grp_file = f"{os.environ['RIGGING_TOOL_ROOT']}/ControlObjects/Blueprint/controlGroup_control.ma"
+        cmds.file(control_grp_file, i=1)
         
+        self.module_transform = cmds.rename("controlGroup_control", f"{self.module_namespace}:module_transform")
+        cmds.xform(self.module_transform, ws=1, a=1, t=root_pos)
+        
+        utils.add_node_to_container(self.container_name, self.module_transform, ihb=1)
+         
+        # Setup global scaling
+        cmds.connectAttr(f"{self.module_transform}.scaleY", f"{self.module_transform}.scaleX")
+        cmds.connectAttr(f"{self.module_transform}.scaleY", f"{self.module_transform}.scaleZ")
+        
+        cmds.aliasAttr("globalScale", f"{self.module_transform}.scaleY")
+        
+        cmds.container(self.container_name, e=1, pb=[f"{self.module_transform}.translate", "moduleTransform_T"])
+        cmds.container(self.container_name, e=1, pb=[f"{self.module_transform}.rotate", "moduleTransform_R"])
+        cmds.container(self.container_name, e=1, pb=[f"{self.module_transform}.globalScale", "moduleTransform_globalScale"])

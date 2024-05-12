@@ -163,6 +163,11 @@ class Blueprint_UI(QtWidgets.QDialog):
             module_instance.install()
             
             
+            module_transform = f"{mod.CLASS_NAME}__{user_spec_name}:module_transform"
+            cmds.select(module_transform, r=1)
+            cmds.setToolTo("moveSuperContext")
+            
+            
         except ImportError as e:
             print(f"Failed to import {module}: {e}")
         except AttributeError as e:

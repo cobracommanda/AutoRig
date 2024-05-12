@@ -19,7 +19,8 @@ class ModuleA():
         cmds.namespace(setNamespace=":")
         cmds.namespace(add=self.module_namespace)
         self.joints_grp = cmds.group(empty=True, name=f"{self.module_namespace}:joints_grp")
-        self.module_grp = cmds.group(self.joints_grp, name=f"{self.module_namespace}:module_grp")
+        self.hierarchy_representation_grp = cmds.group(em=1, n=f"{self.module_namespace}:hierarchy_representation_grp")
+        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp], name=f"{self.module_namespace}:module_grp")
         
         if not cmds.objExists(self.container_name):
             cmds.container(name=self.container_name)
@@ -43,8 +44,9 @@ class ModuleA():
             joint_name_full = cmds.joint(n=f"{self.module_namespace}:{joint_name}", p=joint_pos)
             joints.append(joint_name_full)
             
-            
+            cmds.setAttr(f"{joint_name_full}.visibility", 0)
             utils.add_node_to_container(self.container_name, joint_name_full)
+            
             cmds.container(self.container_name, edit=True, publishAndBind=[f"{joint_name_full}.rotate", f"{joint_name}_R"])
             cmds.container(self.container_name, edit=True, publishAndBind=[f"{joint_name_full}.rotateOrder", f"{joint_name}_rotateOrder"])
               
@@ -132,4 +134,37 @@ class ModuleA():
         for node in [ik_handle, root_locator, end_locator]:
             cmds.parent(node, self.joints_grp, a=1)
             cmds.setAttr(f"{node}.visibility", 0)
+        
+        self.create_hierarchy_representation(parent_joint, child_joint)
+            
+    def create_hierarchy_representation(self, parent_joint, child_joint):
+        nodes = self.create_stretchy_object("/ControlObjects/Blueprint/hierarchy_representation.ma", "hierarchy_representation_container", 
+                                            "hierarchy_representation", parent_joint, child_joint)
+        
+        constrained_grp = nodes[2] 
+        cmds.parent(constrained_grp, self.hierarchy_representation_grp, r=1)
+        
+        
+        
+    
+    def create_stretchy_object(self, object_relative_filepath, object_container_name, object_name, parent_joint, child_joint):
+        object_file = f"{os.environ['RIGGING_TOOL_ROOT']}{object_relative_filepath}"
+        cmds.file(object_file, i=1)
+        object_container = cmds.rename(object_container_name, f"{parent_joint}_{object_container_name}")
+        
+        for node in cmds.container(object_container, q=1, nl=1):
+            cmds.rename(node, f"{parent_joint}_{node}", ignoreShape=1)
+            
+        object = f"{parent_joint}_{object_name}"
+        
+        constrained_grp = cmds.group(em=1, n=f"{object}_parentConstraint_grp")
+        cmds.parent(object, constrained_grp, a=1)
+        
+        parent_constraint = cmds.parentConstraint(parent_joint, constrained_grp, mo=0)[0]
+        cmds.connectAttr(f"{child_joint}.translateX", f"{constrained_grp}.scaleX" )
+        
+        utils.add_node_to_container(object_container, [constrained_grp, parent_constraint], ihb=1)
+        utils.add_node_to_container(self.container_name, object_container)
+        
+        return (object_container, object, constrained_grp)
         

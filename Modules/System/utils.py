@@ -52,8 +52,38 @@ def strip_leading_namespace(nodename):
     return [split_string[0], split_string[2]]
     
     
+def strip_all_namespaces(nodename):
+    if str(nodename).find(":") == -1:
+        return None
+        
+    split_string = str(nodename).rpartition(":")
+    return [split_string[0], split_string[2]]
+    
+    
 def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=True, poleVectorObject=None, scaleCorrectionAttribute=None):
+    from math import fabs
     contained_nodes = []
+    
+    total_original_length = 0.0
+    done = False
+    parent = root_joint
+    child_joints = []
+    
+    while not done:
+        children = cmds.listRelatives(parent, children=True)
+        children = cmds.ls(children, type="joint")
+        
+        if len(children) == 0:
+            done = True
+        else:
+            child = children[0]
+            child_joints.append(child)
+            total_original_length += fabs(cmds.getAttr(f"{child}.translateX"))
+            parent = child
+            
+            if child == end_joint:
+                done = True
+                 
     
     # Create RP IK on joint chain
     ik_nodes = cmds.ikHandle(sj=root_joint, ee=end_joint, sol="ikRPsolver", n=f"{root_joint}_ikHandle")
@@ -86,6 +116,41 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     contained_nodes.extend([root_locator, end_locator, root_locator_point_constraint, ik_handle_point_constraint])
     cmds.setAttr(f"{root_locator}.visibility", 0)
     cmds.setAttr(f"{end_locator}.visibility", 0)
+    
+    
+    # Grab distance between locators
+    root_locator_without_namespace = strip_all_namespaces(root_locator)[1]
+    end_locator_without_namespace = strip_all_namespaces(end_locator)[1]
+    
+    module_namespace = strip_all_namespaces(root_joint)[0]
+    
+    dist_node = cmds.shadingNode("distanceBetween", au=1, n=f"{module_namespace}:distBetween_{root_locator_without_namespace}_{end_locator_without_namespace}")
+    contained_nodes.append(dist_node)
+    
+    cmds.connectAttr(f"{root_locator}Shape.worldPosition[0]", f"{dist_node}.point1")
+    cmds.connectAttr(f"{end_locator}Shape.worldPosition[0]", f"{dist_node}.point2")
+    
+    scale_attr = f"{dist_node}.distance"
+    
+    # Divide distance by total original length = scale factor
+    scale_factor = cmds.shadingNode("multiplyDivide", au=1, n=f"{ik_handle}_scaleFactor")
+    contained_nodes.append(scale_factor)
+    
+    cmds.setAttr(f"{scale_factor}.operation", 2) # Divide
+    cmds.connectAttr(scale_attr, f"{scale_factor}.input1X")
+    cmds.setAttr(f"{scale_factor}.input2X", total_original_length)
+    
+    translation_driver = f"{scale_factor}.outputX"
+    
+    # Connect joints to stretchy calculations
+    for joint in child_joints:
+        mult_node = cmds.shadingNode("multiplyDivide", au=1, n=f"{joint}_scaleMultiply")
+        contained_nodes.append(mult_node)
+        
+        cmds.setAttr(f"{mult_node}.input1X", cmds.getAttr(f"{joint}.translateX"))
+        cmds.connectAttr(translation_driver, f"{mult_node}.input2X")
+        cmds.connectAttr(f"{mult_node}.outputX", f"{joint}.translateX")
+    
     
     if container != None:
         add_node_to_container(container, contained_nodes, ihb=1)

@@ -159,7 +159,15 @@ class Blueprint_UI(QtWidgets.QDialog):
         msg_box.setText("Error: " + message)
         msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.exec_()
-
+        
+    def question(self):
+        button_pressed = QtWidgets.QMessageBox.question(self, "Question", "Converting blueprints to joints is irreversible..\nOnce done, modifications will no longer be possible.\nDo you wish to proceed?")
+        if button_pressed == QtWidgets.QMessageBox.Yes:
+           self.lock()
+        else:
+            return
+            
+            
     def install_module(self, module, *args):
         basename = "instance_"
         cmds.namespace(setNamespace=":")
@@ -184,11 +192,40 @@ class Blueprint_UI(QtWidgets.QDialog):
 
 
     def create_connections(self):
-        # Assuming every button in self.buttons should connect to the install_module function
+        self.lock_button.clicked.connect(self.question)
+        # self.publish_button = QtWidgets.QPushButton("Publish")
         for button in self.buttons:
             if button.text() != '':
                 # Connect only functional buttons, ignore placeholders
                 button.clicked.connect(self.button_clicked)
+                
+                
+    def lock(self, *args):
+        module_info = [] # Store (module, user_specified_name) pairs
+        cmds.namespace(set=":")
+        namespaces = cmds.namespaceInfo(ls=1)
+        
+        module_name_info = utils.find_all_module_names("/Modules/Blueprint")
+        valid_modules = module_name_info[0]
+        valid_module_names = module_name_info[1]
+        
+        for n in namespaces:
+            split_string = n.partition("__")
+            
+            if split_string[1] != "":
+                module = split_string[0]
+                user_specified_name = split_string[2]
+                
+                if module in valid_module_names:
+                    index = valid_module_names.index(module)
+                    module_info.append([valid_module_names[index], user_specified_name])
+                    
+        if len(module_info) == 0:
+            self.display_error("There appears to be no blueprint modules\ninstance in the current scene.\nAborting lock")
+            return
+        
+        print(module_info)
+        
 
     def button_clicked(self):
         sender = self.sender()

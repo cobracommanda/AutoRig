@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+import importlib
 
 def find_all_modules(relative_directory):
     all_py_files = find_all_files(relative_directory, ".py")
@@ -9,7 +10,20 @@ def find_all_modules(relative_directory):
             return_modules.append(the_file)
             
     return return_modules
+   
+def find_all_module_names(relative_directory):
+    valid_modules = find_all_modules(relative_directory)
+    valid_module_names = []
     
+    package_folder = relative_directory.partition("/Modules/")[2]
+    
+    for m in valid_modules:
+        mod = __import__(f"{package_folder}.{m}",(), {}, [m])
+        importlib.reload(mod) 
+        
+        valid_module_names.append(mod.CLASS_NAME)
+        
+    return (valid_modules, valid_module_names)
     
 def find_all_files(relative_directory, file_extension):
     import os

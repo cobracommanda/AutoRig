@@ -2,19 +2,22 @@ import os
 import maya.cmds as cmds
 import System.utils as utils
 
-CLASS_NAME = "ModuleA"
-TITLE = "Module A"
-DESCRIPTION = "Test description for module A"
-ICON = f"{os.environ['RIGGING_TOOL_ROOT']}/Icons/_hand.xpm"
 
-class ModuleA():
-    def __init__(self, user_specified_name) -> None:
-        self.module_name = CLASS_NAME
+class Blueprint():
+    def __init__(self,module_name, user_specified_name, joint_info) -> None:
+        self.module_name = module_name
         self.user_specified_name = user_specified_name
         self.module_namespace = f"{self.module_name}__{self.user_specified_name}"
         self.container_name = f"{self.module_namespace}:module_container"
-        self.joint_info = [["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]]]
+        self.joint_info = joint_info
         
+    # Methods intended for overriding by derived class
+    def install_custom(self, joints):
+        print("install_custom() method is not implemented by derived class")
+        
+        
+    
+    #  Baseclass Methods   
     def install(self):
         cmds.namespace(setNamespace=":")
         cmds.namespace(add=self.module_namespace)
@@ -73,11 +76,9 @@ class ModuleA():
         for index in range(len(joints) - 1):
             self.setup_stretchy_joint_segment(joints[index], joints[index+1])
             
-        # NON DEFAULT FUNCTIONALITY
-        self.create_orientation_control(joints[0], joints[1])  
+        self.install_custom(joints)
             
-            
-        
+    
         utils.force_scene_update()
         cmds.lockNode(self.container_name, lock=True, lockUnpublished=True)
         

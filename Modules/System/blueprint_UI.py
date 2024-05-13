@@ -1,6 +1,4 @@
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
 
 import sys
@@ -12,26 +10,25 @@ from functools import partial
 
 importlib.reload(utils)
 
-
 def maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
     return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
 class Blueprint_UI(QtWidgets.QDialog):
-    
+
     dlg_instance = None
-    
+
     @classmethod
     def show_dialog(cls):
         if not cls.dlg_instance:
             cls.dlg_instance = Blueprint_UI()
-        
+
         if cls.dlg_instance.isHidden():
             cls.dlg_instance.show()
         else:
             cls.dlg_instance.raise_()
             cls.dlg_instance.activateWindow()
-    
+
     def __init__(self, parent=None):
         if parent is None:
             parent = maya_main_window()
@@ -40,71 +37,96 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.setMinimumSize(400, 598)
         self.create_widgets()
         self.create_layout()
-        # self.create_connections()
+        self.create_connections()
 
     def create_widgets(self):
         self.tab_widget = QtWidgets.QTabWidget()
         self.blueprint_tab = QtWidgets.QWidget()
         self.animation_tab = QtWidgets.QWidget()
 
-    def create_layout(self):
-        blueprint_layout = QtWidgets.QVBoxLayout(self.blueprint_tab)
-        blueprint_layout.setContentsMargins(0, 0, 0, 0)
-
         self.scroll_area = QtWidgets.QScrollArea(self.blueprint_tab)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        
         self.scroll_area_widget_contents = QtWidgets.QWidget()
         self.scroll_area.setWidget(self.scroll_area_widget_contents)
-        
+
+        self.module_name_edit_top = QtWidgets.QLineEdit()
+
+        self.buttons = self.setup_buttons([
+            'Rehook', 'Snap root to hook', 'Constraint root to hook', 
+            'Group', 'Ungroup', 'Mirror', '', 'Delete', ''
+        ])
+
+        self.lock_button = QtWidgets.QPushButton("Lock")
+        self.publish_button = QtWidgets.QPushButton("Publish")
+
+        self.module_widgets = []
+        for module in utils.find_all_modules("Modules/Blueprint"):
+            module_data = self.dynamic_import(module)
+            if module_data:
+                self.module_widgets.append(self.create_module_widget(module_data, module))
+
+    def create_module_widget(self, module_data, module):
+        item_widget = QtWidgets.QWidget()
+        item_layout = QtWidgets.QHBoxLayout(item_widget)
+        item_layout.setSpacing(0)
+        item_widget.setFixedSize(380, 60)
+
+        button = QtWidgets.QPushButton()
+        icon = QtGui.QIcon(module_data[2])
+        button.setIcon(icon)
+        button.setIconSize(QtCore.QSize(40, 40))
+        button.setFixedSize(50, 50)
+        button.clicked.connect(partial(self.install_module, module))
+
+        text_container = QtWidgets.QWidget()
+        text_layout = QtWidgets.QVBoxLayout(text_container)
+        text_layout.setSpacing(0)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+
+        title_label = QtWidgets.QLabel(module_data[0])
+        title_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        text_area = QtWidgets.QTextEdit(module_data[1])
+        text_area.setFixedHeight(40)
+        text_area.setStyleSheet("QTextEdit { padding-bottom: 10px; }")
+        text_area.setReadOnly(True)
+
+        text_layout.addWidget(title_label)
+        text_layout.addWidget(text_area)
+
+        item_layout.addWidget(button)
+        item_layout.addWidget(text_container)
+
+        return item_widget
+
+    def create_layout(self):
+        blueprint_layout = QtWidgets.QVBoxLayout(self.blueprint_tab)
+        blueprint_layout.setContentsMargins(0, 0, 0, 0)
+        blueprint_layout.addWidget(self.scroll_area)
+
         self.scroll_layout = QtWidgets.QVBoxLayout(self.scroll_area_widget_contents)
         self.scroll_layout.setContentsMargins(0, 0, 0, 0)
         self.scroll_layout.setAlignment(QtCore.Qt.AlignTop)
-        
-        
-        for module in utils.find_all_modules("Modules/Blueprint"):
-            module_data = self.dynamic_import(module)
-            item_widget = QtWidgets.QWidget()
-            item_layout = QtWidgets.QHBoxLayout(item_widget)
-            item_layout.setSpacing(0)
-            item_widget.setFixedSize(380, 60)  # Adjust size as needed
 
-            self.current_button = QtWidgets.QPushButton()
-            icon = QtGui.QIcon(module_data[2])
-            self.current_button.setIcon(icon)
-            self.current_button.setIconSize(QtCore.QSize(40, 40))
-            self.current_button.setFixedSize(50, 50)
-            self.current_button.clicked.connect(partial(self.install_module, module))
+        for widget in self.module_widgets:
+            self.scroll_layout.addWidget(widget)
 
-            text_container = QtWidgets.QWidget()
-            text_layout = QtWidgets.QVBoxLayout(text_container)
-            text_layout.setSpacing(0)
-            text_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins to align closely with the button
+        form_layout_top = QtWidgets.QFormLayout()
+        form_layout_top.addRow("Module Name:", self.module_name_edit_top)
+        blueprint_layout.addLayout(form_layout_top)
 
-            title_label = QtWidgets.QLabel(module_data[0])
-            title_label.setAlignment(QtCore.Qt.AlignCenter)
+        grid_layout = QtWidgets.QGridLayout()
+        for i, button in enumerate(self.buttons):
+            grid_layout.addWidget(button, i // 3, i % 3)
+        blueprint_layout.addLayout(grid_layout)
 
-            text_area = QtWidgets.QTextEdit(module_data[1])
-            text_area.setFixedHeight(40)  # Adjust height to accommodate the title
+        vbox_layout = QtWidgets.QVBoxLayout()
+        vbox_layout.addWidget(self.lock_button)
+        vbox_layout.addWidget(self.publish_button)
+        blueprint_layout.addLayout(vbox_layout)
 
-            # Set padding at the bottom of the text area
-            text_area.setStyleSheet("QTextEdit { padding-bottom: 10px; }")
-            
-            text_area.setReadOnly(True)
-
-            text_layout.addWidget(title_label)
-            text_layout.addWidget(text_area)
-
-            item_layout.addWidget(self.current_button)
-            item_layout.addWidget(text_container)
-
-            self.scroll_layout.addWidget(item_widget)
-
-
-
-        blueprint_layout.addWidget(self.scroll_area)
         blueprint_layout.addStretch(1)
 
         animation_layout = QtWidgets.QVBoxLayout(self.animation_tab)
@@ -123,57 +145,65 @@ class Blueprint_UI(QtWidgets.QDialog):
             mod = __import__(module_path, fromlist=[module_name])
             importlib.reload(mod)
 
-            # Access module attributes
             title = getattr(mod, 'TITLE', 'Default Title')
             description = getattr(mod, 'DESCRIPTION', 'No description provided.')
             icon_path = getattr(mod, 'ICON', '')
 
-        except ImportError as e:
-            print(f"Failed to import {module_name}: {e}")
-        except AttributeError as e:
-            print(f"Error accessing attributes in {module_name}: {e}")
+            return (title, description, icon_path)
         except Exception as e:
-            print(f"An error occurred with {module_name}: {e}")
+            self.display_error(f"Failed to import {module_name}: {e}")
+            return None
 
-        return (title, description, icon_path)
-    
-    
+    def display_error(self, message):
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setText("Error: " + message)
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+        msg_box.exec_()
+
     def install_module(self, module, *args):
         basename = "instance_"
-        
         cmds.namespace(setNamespace=":")
-        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True) 
-        
+        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True)
         for i in range(len(namespaces)):
             if namespaces[i].find("__") != -1:
                 namespaces[i] = namespaces[i].partition("__")[2]
-        
-        
         new_suffix = utils.find_highest_trailing_number(namespaces, basename) + 1
         user_spec_name = f"{basename}{str(new_suffix)}"
-        
-        
         try:
             module_path = f"Blueprint.{module}"
             mod = __import__(module_path, fromlist=[module])
             importlib.reload(mod)
-            
             ModuleClass = getattr(mod, mod.CLASS_NAME)
             module_instance = ModuleClass(user_spec_name)
             module_instance.install()
-            
-            
             module_transform = f"{mod.CLASS_NAME}__{user_spec_name}:module_transform"
             cmds.select(module_transform, r=1)
             cmds.setToolTo("moveSuperContext")
-            
-            
-        except ImportError as e:
-            print(f"Failed to import {module}: {e}")
-        except AttributeError as e:
-            print(f"Error accessing attributes in {mod.CLASS_NAME}: {e}")
         except Exception as e:
-            print(f"An error occurred with {module}: {e}")
-        
+            self.display_error(f"An error occurred with {module}: {e}")
+
+
     def create_connections(self):
-        self.current_button.clicked.connect(self.install_module)
+        # Assuming every button in self.buttons should connect to the install_module function
+        for button in self.buttons:
+            if button.text() != '':
+                # Connect only functional buttons, ignore placeholders
+                button.clicked.connect(self.button_clicked)
+
+    def button_clicked(self):
+        sender = self.sender()
+        print(f"Button {sender.text()} clicked")  # For debugging
+        # Dispatch based on text
+        # if sender.text() == "Rehook":
+        #     self.handle_rehook()
+        # elif sender.text() == "Delete":
+        #     self.handle_delete()
+
+    def setup_buttons(self, button_texts):
+        buttons = []
+        for text in button_texts:
+            button = QtWidgets.QPushButton(text)
+            if text == '':
+                button.setEnabled(False)  # Disable the button
+            buttons.append(button)
+        return buttons

@@ -200,10 +200,15 @@ class Blueprint_UI(QtWidgets.QDialog):
         #     self.handle_delete()
 
     def setup_buttons(self, button_texts):
-        buttons = []
-        for text in button_texts:
-            button = QtWidgets.QPushButton(text)
-            if text == '':
-                button.setEnabled(False)  # Disable the button
-            buttons.append(button)
-        return buttons
+        controls = []
+        for index, text in enumerate(button_texts):
+            if index == 8:  # If it's the ninth element
+                checkbox = QtWidgets.QCheckBox("Symmetry Move")
+                controls.append(checkbox)
+            elif text == '':
+                # Ignore this since it's likely meant to be the placeholder you're replacing
+                continue
+            else:
+                button = QtWidgets.QPushButton(text)
+                controls.append(button)
+        return controls

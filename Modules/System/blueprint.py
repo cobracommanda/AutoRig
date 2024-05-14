@@ -303,4 +303,38 @@ class Blueprint():
         cmds.lockNode(self.container_name, l=0, lu=0)
         cmds.delete(self.container_name)
         cmds.namespace(set=":")
+        
+        joint_radius = 1
+        if num_joints == 1:
+            joint_radius = 1.5
+            
+        new_joints = []
+        for i in range(num_joints):
+            new_joint = ""
+            cmds.select(cl=1)
+            
+            if orient_with_axis:
+                new_joint = cmds.joint(n=f"{self.module_namespace}:blueprint_{self.joint_info[i][0]}",
+                                        p=joint_positions[i], roo="xyz", rad=joint_radius)
+                
+                if i != 0:
+                    cmds.parent(new_joint, new_joints[i-1], a=1)
+                    offset_index = i - 1
+                    
+                    if offset_index < num_orientations:
+                        cmds.joint(new_joints[offset_index], e=1, oj=joint_orientations[offset_index][0], sao=joint_orientations[offset_index][1])
+                        cmds.makeIdentity(new_joint, r=1, a=1)
+                    
+            else:
+                if i != 0:
+                    cmds.select(new_joints[i-1])
+                    joint_orientation  = [0.0, 0.0, 0.0]
+                    
+                if i < num_orientations:
+                    joint_orientation = [joint_orientations[i][0], joint_orientations[i][1], joint_orientations[i][2]]
+                    
+                new_joint = cmds.joint(n=f"{self.module_namespace}:blueprint_{self.joint_info[i][0]}",
+                                        p=joint_positions[i], o=joint_orientation, roo="xyz", rad=joint_radius)
+                
+            new_joints.append(new_joint)
     

@@ -236,7 +236,6 @@ class Blueprint_UI(QtWidgets.QDialog):
                 module_info = module_inst.lock_phase_1()
                 
                 module_instances.append((module_inst, module_info))
-                
             except ModuleNotFoundError as e:
                 print(f"ModuleNotFoundError: {e}")
                 self.display_error(f"Module {module_name} not found.\nAborting lock")
@@ -245,6 +244,9 @@ class Blueprint_UI(QtWidgets.QDialog):
                 print(f"An error occurred: {e}")
                 self.display_error(f"An error occurred while locking module {module_name}.\nAborting lock")
                 return
+            
+        for module in module_instances:
+            module[0].lock_phase_2(module[1])
         
 
     def button_clicked(self):

@@ -221,10 +221,29 @@ class Blueprint_UI(QtWidgets.QDialog):
                     module_info.append([valid_module_names[index], user_specified_name])
                     
         if len(module_info) == 0:
-            self.display_error("There appears to be no blueprint modules\ninstance in the current scene.\nAborting lock")
+            self.display_error("There appears to be no blueprint modules\ninstances in the current scene.\nAborting lock")
             return
         
-        print(module_info)
+        module_instances = []
+        for module in module_info:
+            module_name = "Blueprint." + module[0]
+            try:
+                mod = __import__(module_name, fromlist=[module[0]])
+                importlib.reload(mod)
+                
+                ModuleClass = getattr(mod, mod.CLASS_NAME)
+                module_inst = ModuleClass(user_specified_name=module[1])
+                module_inst.lock_phase_1()
+                # module_instances.append(module_inst)
+                
+            except ModuleNotFoundError as e:
+                print(f"ModuleNotFoundError: {e}")
+                self.display_error(f"Module {module_name} not found.\nAborting lock")
+                return
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                self.display_error(f"An error occurred while locking module {module_name}.\nAborting lock")
+                return
         
 
     def button_clicked(self):

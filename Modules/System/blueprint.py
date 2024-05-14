@@ -15,6 +15,20 @@ class Blueprint():
     def install_custom(self, joints):
         print("install_custom() method is not implemented by derived class")
         
+    def lock_phase_1(self):
+        """
+        Gather and return all required information from this module's control objects
+        joint_positions = a list of joint positions, from root down the hierarchy
+        joint_orientations = a list of orientations, or a list of axis information (orient_joint and secondary_axis_orient for joint command)
+                                # These are passed in the following tuple: (orientations, None) or (None, axis_info)
+        joint_rotation_orders = a list of joint rotation orders (integer values gathered with getAttr)
+        joint_preferred_angles = a list of joint preferred angles, optional (can pass None)
+        hook_object = self.find_hook_object_for_lock()
+        root_transform = a bool, either True or False. True = R,T, and S on root joint. False = R only
+        module_info = (joint_positions, joint_orientations, joint_rotation_orders, joint_preferred_angles, hook_object)
+        return module_info
+        """
+        return None
         
     
     #  Baseclass Methods   
@@ -224,3 +238,6 @@ class Blueprint():
         cmds.container(self.container_name, e=1, pb=[f"{orientation_container}.{attr_name}", attr_name])
         
         return orientation_control
+    
+    
+    

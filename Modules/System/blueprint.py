@@ -240,4 +240,37 @@ class Blueprint():
         return orientation_control
     
     
+    def get_joints(self):
+        joint_basename = f"{self.module_namespace}:"
+        joints = []
+        
+        for joint_inf in self.joint_info:
+            joints.append(f"{joint_basename}{joint_inf[0]}")
+            
+        return joints
+    
+    def get_orientation_control(self, joint_name):
+        return f"{joint_name}_orientation_control"
+    
+    def orientation_controlled_joint_get_orientation(self, joint, clean_parent):
+        new_clean_parent = cmds.duplicate(joint, po=1)[0]
+        
+        if not clean_parent in cmds.listRelatives(new_clean_parent, p=1):
+            cmds.parent(new_clean_parent, clean_parent, a=1)
+            
+        cmds.makeIdentity(new_clean_parent, a=1, r=1, s=0, t=0)
+        orientation_control = self.get_orientation_control(joint)
+        
+        cmds.setAttr(f"{new_clean_parent}.rotateX", cmds.getAttr(f"{orientation_control}.rotateX"))
+        
+        cmds.makeIdentity(new_clean_parent, a=1, r=1, s=0, t=0)
+        
+        orientX =  cmds.getAttr(f"{new_clean_parent}.jointOrientX")
+        orientY =  cmds.getAttr(f"{new_clean_parent}.jointOrientY")
+        orientZ =  cmds.getAttr(f"{new_clean_parent}.jointOrientZ")
+        
+        orientation_values = (orientX, orientY, orientZ)
+        
+        return (orientation_values, new_clean_parent)
+    
     

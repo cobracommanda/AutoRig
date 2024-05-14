@@ -233,8 +233,9 @@ class Blueprint_UI(QtWidgets.QDialog):
                 
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
                 module_inst = ModuleClass(user_specified_name=module[1])
-                module_inst.lock_phase_1()
-                # module_instances.append(module_inst)
+                module_info = module_inst.lock_phase_1()
+                
+                module_instances.append((module_inst, module_info))
                 
             except ModuleNotFoundError as e:
                 print(f"ModuleNotFoundError: {e}")

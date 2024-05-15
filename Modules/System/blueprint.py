@@ -369,3 +369,31 @@ class Blueprint():
         cmds.select(setting_locator, r=1)
         cmds.addAttr(at="enum", ln="activeModule", en="None:", k=0)
         cmds.addAttr(at="float", ln="creationPoseWeight", dv=1, k=0)
+        
+        i = 0 
+        utility_nodes = []
+        for joint in new_joints:
+            if i < (num_joints-1) or num_joints == 1:
+                add_node = cmds.shadingNode("plusMinusAverage", n=f"{joint}_addRotations", au=1)
+                cmds.connectAttr(f"{add_node}.output3D", f"{joint}.rotate", f=1)
+                utility_nodes.append(add_node)
+                
+                dummy_rotations_multiply = cmds.shadingNode("multiplyDivide", n=f"{joint}_dummyRotationsMultiply", au=1) 
+                cmds.connectAttr(f"{dummy_rotations_multiply}.output", f"{add_node}.input3D[0]", f=1)
+                utility_nodes.append(dummy_rotations_multiply)
+                
+            if i > 0:
+                original_tx = cmds.getAttr(f"{joint}.tx")
+                add_tx_node = cmds.shadingNode("plusMinusAverage", n=f"{joint}_addTx", au=1)
+                cmds.connectAttr(f"{add_tx_node}.output1D", f"{joint}.translateX", f=1)
+                utility_nodes.append(add_tx_node)
+                
+                original_tx_multiply = cmds.shadingNode("multiplyDivide", n=f"{joint}_original_Tx", au=1)
+                cmds.setAttr(f"{original_tx_multiply}.input1X", original_tx, l=1)
+                cmds.connectAttr(f"{setting_locator}.creationPoseWeight", f"{original_tx_multiply}.input2X", f=1)
+                
+                cmds.connectAttr(f"{original_tx_multiply}.outputX", f"{add_tx_node}.input1D[0]", f=1)
+                utility_nodes.append(original_tx_multiply)
+                
+            i += 1
+            

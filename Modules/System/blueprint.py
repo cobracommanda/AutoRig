@@ -337,4 +337,27 @@ class Blueprint():
                                         p=joint_positions[i], o=joint_orientation, roo="xyz", rad=joint_radius)
                 
             new_joints.append(new_joint)
+            
+            if i < num_rotation_orders:
+                cmds.setAttr(f"{new_joint}.rotateOrder", int(joint_rotation_orders[i]))
+                
+            if i < num_preferred_angles:
+                cmds.setAttr(f"{new_joint}.preferredAngleX", joint_preferred_angles[i][0])
+                cmds.setAttr(f"{new_joint}.preferredAngleY", joint_preferred_angles[i][1])
+                cmds.setAttr(f"{new_joint}.preferredAngleZ", joint_preferred_angles[i][2])
+                cmds.setAttr(f"{new_joint}.segmentScaleCompensate", 0)
+                
+        blueprint_grp = cmds.group(em=1, n=f"{self.module_namespace}:blueprint_joint_grp")
+        cmds.parent(new_joints[0], blueprint_grp, a=1)
+        
+        creation_pose_grp_nodes = cmds.duplicate(blueprint_grp, n=f"{self.module_namespace}:creation_pose_joint_grp", rc=1)
+        creation_pose_grp = creation_pose_grp_nodes[0]
+        
+        creation_pose_grp_nodes.pop(0)
+        
+        i = 0
+        for node in creation_pose_grp_nodes:
+            renamed_node = cmds.rename(node, f"{self.module_namespace}:creation_pose_{self.joint_info[i][0]}")
+            cmds.setAttr(f"{renamed_node}.visibility", 0)
+            i += 1
     

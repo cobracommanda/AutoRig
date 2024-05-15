@@ -361,3 +361,11 @@ class Blueprint():
             cmds.setAttr(f"{renamed_node}.visibility", 0)
             i += 1
     
+        cmds.select(blueprint_grp, r=1)
+        cmds.addAttr(at="bool", dv=0, ln="controlModulesInstalled", k=0)
+        setting_locator = cmds.spaceLocator(n=f"{self.module_namespace}:SETTINGS")[0]
+        cmds.setAttr(f"{setting_locator}.visibility", 0)
+        
+        cmds.select(setting_locator, r=1)
+        cmds.addAttr(at="enum", ln="activeModule", en="None:", k=0)
+        cmds.addAttr(at="float", ln="creationPoseWeight", dv=1, k=0)

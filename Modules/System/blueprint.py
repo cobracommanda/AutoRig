@@ -425,4 +425,30 @@ class Blueprint():
                     utility_nodes.append(original_scale_multiply)
                 
             i += 1
-            
+        
+        blueprint_nodes = utility_nodes
+        blueprint_nodes.append(blueprint_grp)
+        blueprint_nodes.append(creation_pose_grp)
+        
+        blueprint_container = cmds.container(n=f"{self.module_namespace}:blueprint_container")
+        utils.add_node_to_container(blueprint_container, blueprint_nodes, ihb=1)
+        
+        module_grp = cmds.group(em=1, n=f"{self.module_namespace}:module_grp")
+        cmds.parent(setting_locator, module_grp, a=1)
+        
+        #TEMP
+        for group in [blueprint_grp, creation_pose_grp]:
+            cmds.parent(group, module_grp, a=1)
+        
+        #END TEMP
+        
+        module_container = cmds.container(n=f"{self.module_namespace}:module_container")
+        utils.add_node_to_container(module_container, [module_grp, setting_locator, blueprint_container], include_shapes=1)
+        
+        
+        cmds.container(module_container, e=1, pb=[f"{setting_locator}.activeModule", "activeModule"])
+        cmds.container(module_container, e=1, pb=[f"{setting_locator}.creationPoseWeight", "creationPoseWeight"])
+        
+        #TEMP
+        cmds.lockNode(module_container, l=1, lu=1)
+        #END TEMP

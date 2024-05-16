@@ -1,13 +1,16 @@
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets, QtGui
 from shiboken2 import wrapInstance
 import maya.cmds as cmds
 import maya.OpenMayaUI as omui
 import System.utils as utils
 import importlib
+from functools import partial
+
 
 def maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
     return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+
 
 class Blueprint_UI(QtWidgets.QDialog):
 
@@ -27,45 +30,43 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.create_script_job()
 
     def showEvent(self, event):
-        super(Blueprint_UI, self).showEvent(event)
+        super().showEvent(event)
         self.create_script_job()  # Recreate the script job when the UI is shown
 
     def hideEvent(self, event):
         self.delete_script_job()  # Delete the script job when the UI is hidden
-        super(Blueprint_UI, self).hideEvent(event)
+        super().hideEvent(event)
 
     def closeEvent(self, event):
         self.delete_script_job()  # Delete the script job when the UI is closed
-        super(Blueprint_UI, self).closeEvent(event)
+        super().closeEvent(event)
+
 
     def create_script_job(self):
         if self.job_num is None:
-            self.job_num = cmds.scriptJob(event=["SelectionChanged", self.modify_selected],parent=self.objectName())
+            self.job_num = cmds.scriptJob(event=["SelectionChanged", self.modify_selected], parent=self.objectName())
 
     def delete_script_job(self):
         if self.job_num and cmds.scriptJob(exists=self.job_num):
             cmds.scriptJob(kill=self.job_num, force=True)
             self.job_num = None
-            
+
     def modify_selected(self, *args):
         selected_nodes = cmds.ls(sl=1)
-        
         if len(selected_nodes) <= 1:
             self.module_instance = None
             selected_module_namespace = None
             current_module_file = None
-            
+
             if len(selected_nodes) == 1:
                 last_selected = selected_nodes[0]
-                
                 namespace_and_node = utils.strip_leading_namespace(last_selected)
-                if namespace_and_node != None:
+                if namespace_and_node:
                     namespace = namespace_and_node[0]
-                    
                     module_name_info = utils.find_all_module_names("/Modules/Blueprint")
                     valid_modules = module_name_info[0]
                     valid_modules_names = module_name_info[1]
-                    
+
                     index = 0
                     for module_name in valid_modules_names:
                         module_name_inc_suffix = f"{module_name}__"
@@ -74,35 +75,40 @@ class Blueprint_UI(QtWidgets.QDialog):
                             selected_module_namespace = namespace
                             break
                         index += 1
-                        
+
             control_enable = False
             user_specified_name = ""
-            
-            if selected_module_namespace != None:
+
+            if selected_module_namespace:
                 control_enable = True
                 user_specified_name = selected_module_namespace.partition("__")[2]
                 mod = __import__(f"Blueprint.{current_module_file}", {}, {}, [current_module_file])
                 importlib.reload(mod)
-                
+
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
                 self.module_instance = ModuleClass(user_specified_name=user_specified_name)
                 self.module_name_edit_top.setText(user_specified_name)
-            else:
-                self.module_name_edit_top.setText("") 
-                
-            # Enable or disable buttons based on control_enable flag
-            buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook',
-                                 'Group Selected', 'Mirror Module', 'Delete']
-            for button_text in buttons_to_enable:
-                if button_text in self.button_references:
-                    self.button_references[button_text].setEnabled(control_enable)
-            # Ensure "Group Selected" is always enabled
-            if 'Group Selected' in self.button_references:
-                self.button_references['Group Selected'].setEnabled(True)
 
-            # "Ungroup" button is handled separately
-            if self.ungroup_button:
-                self.ungroup_button.setEnabled(False)
+                # Clear existing widgets
+                self.clear_rotation_order_widgets()
+                # Add joint labels and rotation order combo boxes dynamically
+                self.add_rotation_order_widget(f"Joint: {selected_module_namespace}", ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"])
+            else:
+                self.module_name_edit_top.setText("")
+                self.clear_rotation_order_widgets()
+
+        # Enable or disable buttons based on control_enable flag
+        buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 'Group Selected', 'Mirror Module', 'Delete']
+        for button_text in buttons_to_enable:
+            if button_text in self.button_references:
+                self.button_references[button_text].setEnabled(control_enable)
+        # Ensure "Group Selected" is always enabled
+        if 'Group Selected' in self.button_references:
+            self.button_references['Group Selected'].setEnabled(True)
+
+        # "Ungroup" button is handled separately
+        if self.ungroup_button:
+            self.ungroup_button.setEnabled(False)
 
 
     def create_widgets(self):
@@ -120,8 +126,7 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.module_name_edit_top = QtWidgets.QLineEdit()
 
         self.buttons = self.setup_buttons([
-            'Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 
-            'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
+            'Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
         ])
 
         self.lock_button = QtWidgets.QPushButton("Lock")
@@ -132,6 +137,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             module_data = self.dynamic_import(module)
             if module_data:
                 self.module_widgets.append(self.create_module_widget(module_data, module))
+
+        self.rotation_order_scroll_area = self.create_rotation_order_scroll_area()
 
     def create_module_widget(self, module_data, module):
         item_widget = QtWidgets.QWidget()
@@ -167,6 +174,34 @@ class Blueprint_UI(QtWidgets.QDialog):
 
         return item_widget
 
+    def add_rotation_order_widget(self, label_text, combo_items):
+        joint_label = QtWidgets.QLabel(label_text)
+        rotation_order_combo = QtWidgets.QComboBox()
+        rotation_order_combo.addItems(combo_items)
+
+        self.rotation_order_layout.addWidget(joint_label)
+        self.rotation_order_layout.addWidget(rotation_order_combo)
+
+    def clear_rotation_order_widgets(self):
+        while self.rotation_order_layout.count():
+            child = self.rotation_order_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+    
+    def create_rotation_order_scroll_area(self):
+        self.rotation_scroll_area = QtWidgets.QScrollArea()
+        self.rotation_scroll_area.setWidgetResizable(True)
+        self.rotation_scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.rotation_scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.rotation_scroll_area_widget_contents = QtWidgets.QWidget()
+        self.rotation_scroll_area.setWidget(self.rotation_scroll_area_widget_contents)
+
+        self.rotation_order_layout = QtWidgets.QVBoxLayout(self.rotation_scroll_area_widget_contents)
+        self.rotation_order_layout.setAlignment(QtCore.Qt.AlignTop)
+
+        return self.rotation_scroll_area
+
     def create_layout(self):
         blueprint_layout = QtWidgets.QVBoxLayout(self.blueprint_tab)
         blueprint_layout.setContentsMargins(0, 0, 0, 0)
@@ -187,6 +222,8 @@ class Blueprint_UI(QtWidgets.QDialog):
         for i, button in enumerate(self.buttons):
             grid_layout.addWidget(button, i // 3, i % 3)
         blueprint_layout.addLayout(grid_layout)
+
+        blueprint_layout.addWidget(self.rotation_order_scroll_area)
 
         vbox_layout = QtWidgets.QVBoxLayout()
         vbox_layout.addWidget(self.lock_button)
@@ -225,15 +262,14 @@ class Blueprint_UI(QtWidgets.QDialog):
         msg_box.setText("Error: " + message)
         msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.exec_()
-        
+
     def question(self):
         button_pressed = QtWidgets.QMessageBox.question(self, "Question", "Converting blueprints to joints is irreversible..\nOnce done, modifications will no longer be possible.\nDo you wish to proceed?")
         if button_pressed == QtWidgets.QMessageBox.Yes:
-           self.lock()
+            self.lock()
         else:
             return
-            
-            
+
     def install_module(self, module, *args):
         basename = "instance_"
         cmds.namespace(setNamespace=":")
@@ -256,51 +292,47 @@ class Blueprint_UI(QtWidgets.QDialog):
         except Exception as e:
             self.display_error(f"An error occurred with {module}: {e}")
 
-
     def create_connections(self):
         self.lock_button.clicked.connect(self.question)
-        # self.publish_button = QtWidgets.QPushButton("Publish")
         for button in self.buttons:
             if button.text() != '':
                 # Connect only functional buttons, ignore placeholders
                 button.clicked.connect(self.button_clicked)
-                
-                
+
     def lock(self, *args):
-        module_info = [] # Store (module, user_specified_name) pairs
+        module_info = []  # Store (module, user_specified_name) pairs
         cmds.namespace(set=":")
         namespaces = cmds.namespaceInfo(ls=1)
-        
+
         module_name_info = utils.find_all_module_names("/Modules/Blueprint")
         valid_modules = module_name_info[0]
         valid_module_names = module_name_info[1]
-        
+
         for n in namespaces:
             split_string = n.partition("__")
-            
             if split_string[1] != "":
                 module = split_string[0]
                 user_specified_name = split_string[2]
-                
+
                 if module in valid_module_names:
                     index = valid_module_names.index(module)
                     module_info.append([valid_module_names[index], user_specified_name])
-                    
+
         if len(module_info) == 0:
             self.display_error("There appears to be no blueprint modules\ninstances in the current scene.\nAborting lock")
             return
-        
+
         module_instances = []
         for module in module_info:
             module_name = "Blueprint." + module[0]
             try:
                 mod = __import__(module_name, fromlist=[module[0]])
                 importlib.reload(mod)
-                
+
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
                 module_inst = ModuleClass(user_specified_name=module[1])
                 module_info = module_inst.lock_phase_1()
-                
+
                 module_instances.append((module_inst, module_info))
             except ModuleNotFoundError as e:
                 print(f"ModuleNotFoundError: {e}")
@@ -310,10 +342,9 @@ class Blueprint_UI(QtWidgets.QDialog):
                 print(f"An error occurred: {e}")
                 self.display_error(f"An error occurred while locking module {module_name}.\nAborting lock")
                 return
-            
+
         for module in module_instances:
             module[0].lock_phase_2(module[1])
-        
 
     def button_clicked(self):
         sender = self.sender()

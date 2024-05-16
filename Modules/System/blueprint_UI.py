@@ -53,6 +53,8 @@ class Blueprint_UI(QtWidgets.QDialog):
 
     def modify_selected(self, *args):
         selected_nodes = cmds.ls(sl=1)
+        control_enable = False  # Initialize control_enable at the beginning
+
         if len(selected_nodes) <= 1:
             self.module_instance = None
             selected_module_namespace = None
@@ -76,7 +78,6 @@ class Blueprint_UI(QtWidgets.QDialog):
                             break
                         index += 1
 
-            control_enable = False
             user_specified_name = ""
 
             if selected_module_namespace:

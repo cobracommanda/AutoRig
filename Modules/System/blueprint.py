@@ -15,6 +15,10 @@ class Blueprint():
     def install_custom(self, joints):
         print("install_custom() method is not implemented by derived class")
         
+        
+    def UI_custom(self):
+        temp = 1
+        
     def lock_phase_1(self):
         """
         Gather and return all required information from this module's control objects
@@ -452,3 +456,5 @@ class Blueprint():
         #TEMP
         cmds.lockNode(module_container, l=1, lu=1)
         #END TEMP
+        
+    

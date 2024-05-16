@@ -1,14 +1,9 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 from shiboken2 import wrapInstance
-
-import sys
 import maya.cmds as cmds
 import maya.OpenMayaUI as omui
-import importlib
 import System.utils as utils
-from functools import partial
-
-importlib.reload(utils)
+import importlib
 
 def maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
@@ -16,28 +11,99 @@ def maya_main_window():
 
 class Blueprint_UI(QtWidgets.QDialog):
 
-    dlg_instance = None
-
-    @classmethod
-    def show_dialog(cls):
-        if not cls.dlg_instance:
-            cls.dlg_instance = Blueprint_UI()
-
-        if cls.dlg_instance.isHidden():
-            cls.dlg_instance.show()
-        else:
-            cls.dlg_instance.raise_()
-            cls.dlg_instance.activateWindow()
-
     def __init__(self, parent=None):
-        if parent is None:
-            parent = maya_main_window()
-        super().__init__(parent)
+        super(Blueprint_UI, self).__init__(parent or maya_main_window())
+        self.module_instance = None
         self.setWindowTitle("Nardt Industries")
+        self.setObjectName("BlueprintUIDialog")
         self.setMinimumSize(400, 598)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)  # Ensure the widget is destroyed on close
+        self.button_references = {}
+        self.ungroup_button = None
         self.create_widgets()
         self.create_layout()
         self.create_connections()
+        self.job_num = None
+        self.create_script_job()
+
+    def showEvent(self, event):
+        super(Blueprint_UI, self).showEvent(event)
+        self.create_script_job()  # Recreate the script job when the UI is shown
+
+    def hideEvent(self, event):
+        self.delete_script_job()  # Delete the script job when the UI is hidden
+        super(Blueprint_UI, self).hideEvent(event)
+
+    def closeEvent(self, event):
+        self.delete_script_job()  # Delete the script job when the UI is closed
+        super(Blueprint_UI, self).closeEvent(event)
+
+    def create_script_job(self):
+        if self.job_num is None:
+            self.job_num = cmds.scriptJob(event=["SelectionChanged", self.modify_selected],parent=self.objectName())
+
+    def delete_script_job(self):
+        if self.job_num and cmds.scriptJob(exists=self.job_num):
+            cmds.scriptJob(kill=self.job_num, force=True)
+            self.job_num = None
+            
+    def modify_selected(self, *args):
+        selected_nodes = cmds.ls(sl=1)
+        
+        if len(selected_nodes) <= 1:
+            self.module_instance = None
+            selected_module_namespace = None
+            current_module_file = None
+            
+            if len(selected_nodes) == 1:
+                last_selected = selected_nodes[0]
+                
+                namespace_and_node = utils.strip_leading_namespace(last_selected)
+                if namespace_and_node != None:
+                    namespace = namespace_and_node[0]
+                    
+                    module_name_info = utils.find_all_module_names("/Modules/Blueprint")
+                    valid_modules = module_name_info[0]
+                    valid_modules_names = module_name_info[1]
+                    
+                    index = 0
+                    for module_name in valid_modules_names:
+                        module_name_inc_suffix = f"{module_name}__"
+                        if namespace.find(module_name_inc_suffix) == 0:
+                            current_module_file = valid_modules[index]
+                            selected_module_namespace = namespace
+                            break
+                        index += 1
+                        
+            control_enable = False
+            user_specified_name = ""
+            
+            if selected_module_namespace != None:
+                control_enable = True
+                user_specified_name = selected_module_namespace.partition("__")[2]
+                mod = __import__(f"Blueprint.{current_module_file}", {}, {}, [current_module_file])
+                importlib.reload(mod)
+                
+                ModuleClass = getattr(mod, mod.CLASS_NAME)
+                self.module_instance = ModuleClass(user_specified_name=user_specified_name)
+                self.module_name_edit_top.setText(user_specified_name)
+            else:
+                self.module_name_edit_top.setText("") 
+                
+            # Enable or disable buttons based on control_enable flag
+            buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook',
+                                 'Group Selected', 'Mirror Module', 'Delete']
+            for button_text in buttons_to_enable:
+                if button_text in self.button_references:
+                    self.button_references[button_text].setEnabled(control_enable)
+            # Ensure "Group Selected" is always enabled
+            if 'Group Selected' in self.button_references:
+                self.button_references['Group Selected'].setEnabled(True)
+
+            # "Ungroup" button is handled separately
+            if self.ungroup_button:
+                self.ungroup_button.setEnabled(False)
+
 
     def create_widgets(self):
         self.tab_widget = QtWidgets.QTabWidget()
@@ -54,8 +120,8 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.module_name_edit_top = QtWidgets.QLineEdit()
 
         self.buttons = self.setup_buttons([
-            'Rehook', 'Snap root to hook', 'Constraint root to hook', 
-            'Group', 'Ungroup', 'Mirror', '', 'Delete', ''
+            'Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 
+            'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
         ])
 
         self.lock_button = QtWidgets.QPushButton("Lock")
@@ -269,5 +335,8 @@ class Blueprint_UI(QtWidgets.QDialog):
                 continue
             else:
                 button = QtWidgets.QPushButton(text)
+                if index != 3:  # Skip disabling the "Group Selected" button
+                    button.setEnabled(False)  # Disable the button initially
+                self.button_references[text] = button  # Store the button reference
                 controls.append(button)
         return controls

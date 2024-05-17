@@ -2,25 +2,24 @@ import os
 import maya.cmds as cmds
 import System.blueprint as blueprint_mod
 import importlib
-
+import System.utils as utils
 importlib.reload(blueprint_mod)
 
 CLASS_NAME = "SingleJointSegment"
 TITLE = "Single Joint Segment"
-DESCRIPTION = "Creates 2 joints, with controls for it's joints orientation and rotate order. Ideal use: clavicle bone"
+DESCRIPTION = "Creates 2 joints, with controls for its joint orientation and rotate order. Ideal use: clavicle bone"
 ICON = f"{os.environ['RIGGING_TOOL_ROOT']}/Icons/_singleJointSeg.xpm"
 
 
-
 class SingleJointSegment(blueprint_mod.Blueprint):
-    def __init__(self,user_specified_name) -> None:
+    def __init__(self, user_specified_name) -> None:
         joint_info = [["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]]]
-        
         blueprint_mod.Blueprint.__init__(self, CLASS_NAME, user_specified_name, joint_info)
-        
-        
+
     def install_custom(self, joints):
-        self.create_orientation_control(joints[0], joints[1]) 
+        self.create_orientation_control(joints[0], joints[1])
+
+    
     
     def lock_phase_1(self):
         """
@@ -58,4 +57,10 @@ class SingleJointSegment(blueprint_mod.Blueprint):
         module_info = (joint_positions, joint_orientations, joint_rotation_orders, joint_preferred_angles, hook_object, root_transform)
         return module_info
         
-        
+    def UI_custom(self):
+        joints = self.get_joints()
+        self.create_rotation_order_UI_control(joints[0])
+
+    def create_rotation_order_UI_control(self, joint):
+        joint_name = utils.strip_all_namespaces(joint)[1]
+        self.blueprint_UI_instance.add_rotation_order_widget(f"Joint: {joint_name}", ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"], joint)

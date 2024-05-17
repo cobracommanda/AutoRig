@@ -41,7 +41,6 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.delete_script_job()  # Delete the script job when the UI is closed
         super().closeEvent(event)
 
-
     def create_script_job(self):
         if self.job_num is None:
             self.job_num = cmds.scriptJob(event=["SelectionChanged", self.modify_selected], parent=self.objectName())
@@ -92,8 +91,8 @@ class Blueprint_UI(QtWidgets.QDialog):
 
                 # Clear existing widgets
                 self.clear_rotation_order_widgets()
-                # Add joint labels and rotation order combo boxes dynamically
-                self.add_rotation_order_widget(f"Joint: {selected_module_namespace}", ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"])
+                # Add module-specific controls
+                self.create_module_specific_controls()
             else:
                 self.module_name_edit_top.setText("")
                 self.clear_rotation_order_widgets()
@@ -111,6 +110,16 @@ class Blueprint_UI(QtWidgets.QDialog):
         if self.ungroup_button:
             self.ungroup_button.setEnabled(False)
 
+    def create_module_specific_controls(self):
+        # Clear existing controls
+        while self.rotation_order_layout.count():
+            child = self.rotation_order_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        # Add new controls if module instance is available
+        if self.module_instance:
+            self.module_instance.UI(self, self.rotation_order_layout)
 
     def create_widgets(self):
         self.tab_widget = QtWidgets.QTabWidget()
@@ -175,21 +184,37 @@ class Blueprint_UI(QtWidgets.QDialog):
 
         return item_widget
 
-    def add_rotation_order_widget(self, label_text, combo_items):
+    def add_rotation_order_widget(self, label_text, combo_items, joint):
         joint_label = QtWidgets.QLabel(label_text)
         rotation_order_combo = QtWidgets.QComboBox()
         rotation_order_combo.addItems(combo_items)
 
-        self.rotation_order_layout.addWidget(joint_label)
-        self.rotation_order_layout.addWidget(rotation_order_combo)
+        try:
+            # Attempt to get the current rotation order of the joint
+            current_rotation_order = cmds.getAttr(f"{joint}.rotateOrder")
+            rotation_order_combo.setCurrentIndex(current_rotation_order)
+
+            # Connect the combo box change signal to update the joint's rotation order
+            rotation_order_combo.currentIndexChanged.connect(partial(self.update_joint_rotation_order, joint))
+
+            self.rotation_order_layout.addWidget(joint_label)
+            self.rotation_order_layout.addWidget(rotation_order_combo)
+        except ValueError as e:
+            # Handle the error if the joint does not exist
+            print(f"joint locked removing {joint}.rotateOrder: {e} ui element")
+            # Optionally, you can add a message or log the error
+
+
+
+    def update_joint_rotation_order(self, joint, index):
+        cmds.setAttr(f"{joint}.rotateOrder", index)
 
     def clear_rotation_order_widgets(self):
         while self.rotation_order_layout.count():
             child = self.rotation_order_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
-                
-    
+
     def create_rotation_order_scroll_area(self):
         self.rotation_scroll_area = QtWidgets.QScrollArea()
         self.rotation_scroll_area.setWidgetResizable(True)
@@ -297,7 +322,6 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.lock_button.clicked.connect(self.question)
         for button in self.buttons:
             if button.text() != '':
-                # Connect only functional buttons, ignore placeholders
                 button.clicked.connect(self.button_clicked)
 
     def lock(self, *args):
@@ -345,16 +369,12 @@ class Blueprint_UI(QtWidgets.QDialog):
                 return
 
         for module in module_instances:
+            # self.create_module_specific_controls(module)
             module[0].lock_phase_2(module[1])
 
     def button_clicked(self):
         sender = self.sender()
         print(f"Button {sender.text()} clicked")  # For debugging
-        # Dispatch based on text
-        # if sender.text() == "Rehook":
-        #     self.handle_rehook()
-        # elif sender.text() == "Delete":
-        #     self.handle_delete()
 
     def setup_buttons(self, button_texts):
         controls = []
@@ -363,7 +383,6 @@ class Blueprint_UI(QtWidgets.QDialog):
                 checkbox = QtWidgets.QCheckBox("Symmetry Move")
                 controls.append(checkbox)
             elif text == '':
-                # Ignore this since it's likely meant to be the placeholder you're replacing
                 continue
             else:
                 button = QtWidgets.QPushButton(text)

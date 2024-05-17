@@ -148,7 +148,7 @@ def basic_stretchy_IK(root_joint, end_joint, container=None, lockMinimumLength=T
     if container != None:
         add_node_to_container(container, contained_nodes, ihb=1)
         
-        
+         
     return_dict = {}
     return_dict['ik_handle'] = ik_handle
     return_dict['ik_handle_point_constraint'] = ik_handle_point_constraint
@@ -189,3 +189,16 @@ def add_node_to_container(container, nodes_in, ihb=False, include_shapes=False, 
         
     nodes.extend(conversion_nodes)
     cmds.container(container, edit=True, addNode=nodes, ihb=ihb, includeShapes=include_shapes, force=force)
+    
+
+def does_user_specified_name_exist(name):
+    cmds.namespace(set=":")
+    namespaces = cmds.namespaceInfo(lon=1)
+    
+    names = []
+    for namespace in namespaces:
+        if namespace.find("__") != -1:
+            names.append(namespace.partition("__")[2])
+            
+    return name in names
+    

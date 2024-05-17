@@ -282,7 +282,7 @@ class Blueprint_UI(QtWidgets.QDialog):
         except Exception as e:
             self.display_error(f"Failed to import {module_name}: {e}")
             return None
-
+        
     def display_error(self, message):
         msg_box = QtWidgets.QMessageBox()
         msg_box.setText("Error: " + message)
@@ -320,10 +320,12 @@ class Blueprint_UI(QtWidgets.QDialog):
 
     def create_connections(self):
         self.lock_button.clicked.connect(self.question)
+        self.module_name_edit_top.editingFinished.connect(self.rename_module)
         for button in self.buttons:
             if button.text() != '':
                 button.clicked.connect(self.button_clicked)
-
+                
+    
     def lock(self, *args):
         module_info = []  # Store (module, user_specified_name) pairs
         cmds.namespace(set=":")
@@ -397,3 +399,14 @@ class Blueprint_UI(QtWidgets.QDialog):
     def delete_module(self, *args):
         self.module_instance.delete()
         cmds.select(cl=1)
+        
+    def rename_module(self):
+        new_name = self.module_name_edit_top.text()
+        self.module_instance.rename_module_instance(new_name)
+        
+        previous_selection = cmds.ls(sl=1)
+        
+        if len(previous_selection) > 0:
+            cmds.select(previous_selection, r=1)
+        else:
+            cmds.select(cl=1)

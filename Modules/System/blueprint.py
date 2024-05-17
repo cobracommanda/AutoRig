@@ -1,6 +1,10 @@
 import os  # Import os for file operations
 import maya.cmds as cmds  # Import Maya commands module
 import System.utils as utils  # Import custom utility functions
+from PySide2 import QtWidgets
+
+
+
 
 
 class Blueprint:
@@ -442,3 +446,50 @@ class Blueprint:
         
         cmds.namespace(set=":")
         cmds.namespace(rm=self.module_namespace)
+        
+        
+    
+        
+    def rename_module_instance(self, new_name):
+        if new_name == self.user_specified_name:
+            return True
+
+
+        if utils.does_user_specified_name_exist(new_name):
+            try:
+                if cmds.window(confirm_dialog, exists=True):
+                    cmds.deleteUI(confirm_dialog, window=True)
+            except:
+                pass
+                
+                try: 
+                    confirm_dialog = cmds.confirmDialog(t="Name Conflict", m=f'Name {new_name}\nalready exists, aborting rename')
+                    return False
+                except RuntimeError as e:
+                    # Suppress the RuntimeError if it is due to an existing confirmDialog
+                    if 'Only one confirmDialog may exist at a time' in str(e):
+                        pass
+                    else:
+                        raise
+                    
+            
+        
+        else:
+            new_namespace = f"{self.module_name}__{new_name}"
+            cmds.lockNode(self.container_name, l=0, lu=0)
+            cmds.namespace(set=":")
+            cmds.namespace(add=new_namespace)
+            cmds.namespace(set=":")
+            
+            cmds.namespace(mv=[self.module_namespace, new_namespace])
+            cmds.namespace(rm=self.module_namespace)
+            self.module_namespace = new_namespace
+            self.container_name = f"{self.module_namespace}:module_container"
+            
+            cmds.lockNode(self.container_name, l=1, lu=1)
+            return True
+            
+            
+            
+            
+            

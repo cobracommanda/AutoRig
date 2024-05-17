@@ -375,6 +375,8 @@ class Blueprint_UI(QtWidgets.QDialog):
     def button_clicked(self):
         sender = self.sender()
         print(f"Button {sender.text()} clicked")  # For debugging
+        if sender.text() == "Delete":
+            self.delete_module()
 
     def setup_buttons(self, button_texts):
         controls = []
@@ -391,3 +393,7 @@ class Blueprint_UI(QtWidgets.QDialog):
                 self.button_references[text] = button  # Store the button reference
                 controls.append(button)
         return controls
+
+    def delete_module(self, *args):
+        self.module_instance.delete()
+        cmds.select(cl=1)

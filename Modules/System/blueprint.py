@@ -38,7 +38,7 @@ class Blueprint:
         self.hierarchy_representation_grp = cmds.group(em=1, n=f"{self.module_namespace}:hierarchy_representation_grp")  # Create hierarchy representation group
 
         self.orientation_controls_grp = cmds.group(em=1, n=f"{self.module_namespace}:orientationControls_grp")  # Create orientation controls group
-        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp, self.hierarchy_representation_grp], name=f"{self.module_namespace}:module_grp")  # Create module group
+        self.module_grp = cmds.group([self.joints_grp, self.hierarchy_representation_grp, self.hierarchy_representation_grp, self.orientation_controls_grp], name=f"{self.module_namespace}:module_grp")  # Create module group
 
         if not cmds.objExists(self.container_name):
             cmds.container(name=self.container_name)  # Create container
@@ -434,3 +434,11 @@ class Blueprint:
     def create_rotation_order_UI_control(self, joint):
         joint_name = utils.strip_all_namespaces(joint)[1]
         attr_control_group = cmds.attrControlGrp(attribute=f"{joint}.rotateOrder", label=joint_name)  # Create attribute control group
+        
+    def delete(self):
+        cmds.lockNode(self.container_name, l=0, lu=0)
+        cmds.delete(self.container_name)
+        
+        
+        cmds.namespace(set=":")
+        cmds.namespace(rm=self.module_namespace)

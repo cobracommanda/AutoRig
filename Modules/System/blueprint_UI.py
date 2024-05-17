@@ -86,7 +86,7 @@ class Blueprint_UI(QtWidgets.QDialog):
                 importlib.reload(mod)
 
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
-                self.module_instance = ModuleClass(user_specified_name=user_specified_name)
+                self.module_instance = ModuleClass(user_specified_name, None)
                 self.module_name_edit_top.setText(user_specified_name)
 
                 # Clear existing widgets
@@ -305,12 +305,16 @@ class Blueprint_UI(QtWidgets.QDialog):
                 namespaces[i] = namespaces[i].partition("__")[2]
         new_suffix = utils.find_highest_trailing_number(namespaces, basename) + 1
         user_spec_name = f"{basename}{str(new_suffix)}"
+        
+        hook_obj = self.find_hook_object_from_selection()
+        
+        
         try:
             module_path = f"Blueprint.{module}"
             mod = __import__(module_path, fromlist=[module])
             importlib.reload(mod)
             ModuleClass = getattr(mod, mod.CLASS_NAME)
-            module_instance = ModuleClass(user_spec_name)
+            module_instance = ModuleClass(user_spec_name, hook_obj)
             module_instance.install()
             module_transform = f"{mod.CLASS_NAME}__{user_spec_name}:module_transform"
             cmds.select(module_transform, r=1)
@@ -357,7 +361,7 @@ class Blueprint_UI(QtWidgets.QDialog):
                 importlib.reload(mod)
 
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
-                module_inst = ModuleClass(user_specified_name=module[1])
+                module_inst = ModuleClass(module[1], None)
                 module_info = module_inst.lock_phase_1()
 
                 module_instances.append((module_inst, module_info))
@@ -410,3 +414,13 @@ class Blueprint_UI(QtWidgets.QDialog):
             cmds.select(previous_selection, r=1)
         else:
             cmds.select(cl=1)
+            
+    def find_hook_object_from_selection(self, *args):
+        selected_objects = cmds.ls(sl=1, tr=1)
+        
+        number_of_objects = len(selected_objects)
+        hook_obj = None
+        
+        if number_of_objects != 0:
+            hook_obj = selected_objects[number_of_objects - 1]
+        return hook_obj

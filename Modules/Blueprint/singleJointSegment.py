@@ -12,9 +12,9 @@ ICON = f"{os.environ['RIGGING_TOOL_ROOT']}/Icons/_singleJointSeg.xpm"
 
 
 class SingleJointSegment(blueprint_mod.Blueprint):
-    def __init__(self, user_specified_name) -> None:
+    def __init__(self, user_specified_name, hook_obj) -> None:
         joint_info = [["root_joint", [0.0, 0.0, 0.0]], ["end_joint", [4.0, 0.0, 0.0]]]
-        blueprint_mod.Blueprint.__init__(self, CLASS_NAME, user_specified_name, joint_info)
+        blueprint_mod.Blueprint.__init__(self, CLASS_NAME, user_specified_name, joint_info, hook_obj)
 
     def install_custom(self, joints):
         self.create_orientation_control(joints[0], joints[1])

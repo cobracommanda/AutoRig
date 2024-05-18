@@ -88,6 +88,11 @@ class Blueprint_UI(QtWidgets.QDialog):
                 ModuleClass = getattr(mod, mod.CLASS_NAME)
                 self.module_instance = ModuleClass(user_specified_name, None)
                 self.module_name_edit_top.setText(user_specified_name)
+                
+                if self.module_instance.is_root_constrained():
+                    self.button_references['Constrain Root > Hook'].setText('Unconstrain Root')
+                else:
+                    self.button_references['Constrain Root > Hook'].setText('Constrain Root > Hook')
 
                 # Clear existing widgets
                 self.clear_rotation_order_widgets()
@@ -396,10 +401,11 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.snap_root_to_hook()
         elif sender.text() == 'Constrain Root > Hook':
             self.constrain_root_to_hook()
-            sender.setText('Unconstrain')  # Change the button label
-        elif sender.text() == 'Unconstrain':
+            sender.setText('Unconstrain Root')  # Change the button label
+        elif sender.text() == 'Unconstrain Root':
             self.unconstrain_root_to_hook()
             sender.setText('Constrain Root > Hook')  # Change the button label back
+            
 
     def setup_buttons(self, button_texts):
         controls = []

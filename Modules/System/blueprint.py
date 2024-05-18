@@ -607,6 +607,8 @@ class Blueprint:
         if self.hook_object == old_hook_object:
             return
         
+        self.unconstrain_root_to_hook()
+        
         cmds.lockNode(self.container_name, l=0, lu=0)
         hook_constraint = f"{self.module_namespace}:hook_pointConstraint"
         cmds.connectAttr(f"{self.hook_object}.parentMatrix[0]", f"{hook_constraint}.target[0].targetParentMatrix", f=1)
@@ -682,6 +684,24 @@ class Blueprint:
         
         
     def unconstrain_root_to_hook(self):
-        print("UNCONSTRAIN")
+        cmds.lockNode(self.container_name, l=0, lu=0)
+        
+        root_control = self.get_translation_control(f"{self.module_namespace}:{self.joint_info[0][0]}")
+        root_control_hook_constraint = f"{root_control}_hookConstraint"
+        
+        if cmds.objExists(root_control_hook_constraint):
+            cmds.delete(root_control_hook_constraint)
+            
+            cmds.setAttr(f"{root_control}.translate", l=0)
+            cmds.setAttr(f"{root_control}.visibility", l=0)
+            cmds.setAttr(f"{root_control}.visibility", 1)
+            cmds.setAttr(f"{root_control}.visibility", l=1)
+            
+        cmds.lockNode(self.container_name, l=1, lu=1)
+        
+    def is_root_constrained(self):
+        root_control = self.get_translation_control(f"{self.module_namespace}:{self.joint_info[0][0]}")
+        root_control_hook_constraint = f"{root_control}_hookConstraint"
+        return cmds.objExists(root_control_hook_constraint)
 
 

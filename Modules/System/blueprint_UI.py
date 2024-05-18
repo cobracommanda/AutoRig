@@ -96,6 +96,9 @@ class Blueprint_UI(QtWidgets.QDialog):
             else:
                 self.module_name_edit_top.setText("")
                 self.clear_rotation_order_widgets()
+        else:
+            # Enable control when multiple nodes are selected
+            control_enable = True
 
         # Enable or disable buttons based on control_enable flag
         buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 'Group Selected', 'Mirror Module', 'Delete']
@@ -383,6 +386,8 @@ class Blueprint_UI(QtWidgets.QDialog):
         print(f"Button {sender.text()} clicked")  # For debugging
         if sender.text() == "Delete":
             self.delete_module()
+        elif sender.text() == "Re-hook":
+            self.rehook_module_setup()
 
     def setup_buttons(self, button_texts):
         controls = []
@@ -424,3 +429,27 @@ class Blueprint_UI(QtWidgets.QDialog):
         if number_of_objects != 0:
             hook_obj = selected_objects[number_of_objects - 1]
         return hook_obj
+    
+    def rehook_module_setup(self, *args):
+        selected_nodes = cmds.ls(sl=1, tr=1)
+        if len(selected_nodes) == 2:
+            new_hook = self.find_hook_object_from_selection()
+            self.module_instance.rehook(new_hook)
+        else:
+            self.delete_script_job()
+            current_selection = cmds.ls(sl=1)
+            
+            cmds.headsUpMessage("Please select the joint you wish to re-hook to. Clear selection to re-hook")
+            cmds.scriptJob(event=["SelectionChanged", partial(self.rehook_module_callback, current_selection)], ro=1)
+            
+    def rehook_module_callback(self, current_selection):
+        new_hook = self.find_hook_object_from_selection()
+        self.module_instance.rehook(new_hook)
+        if len(current_selection) > 0:
+            cmds.select(current_selection, r=1)
+        else:
+            cmds.select(cl=1)
+            
+        self.create_script_job()
+            
+            

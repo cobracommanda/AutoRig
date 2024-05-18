@@ -554,5 +554,6 @@ class Blueprint:
         utils.add_node_to_container(hook_container, hook_representation_container)
         
         
-        
-        
+    def rehook(self, new_hook_object):
+        print(new_hook_object)
+         

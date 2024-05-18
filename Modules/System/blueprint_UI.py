@@ -379,8 +379,11 @@ class Blueprint_UI(QtWidgets.QDialog):
                 return
 
         for module in module_instances:
-            # self.create_module_specific_controls(module)
             module[0].lock_phase_2(module[1])
+            
+        for module in module_instances:
+            hook_object = module[1][4]
+            module[0].lock_phase_3(hook_object)
 
     def button_clicked(self):
         sender = self.sender()

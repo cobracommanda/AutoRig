@@ -443,6 +443,10 @@ class Blueprint:
         cmds.container(module_container, e=1, pb=[f"{setting_locator}.activeModule", "activeModule"])  # Publish activeModule attribute
         cmds.container(module_container, e=1, pb=[f"{setting_locator}.creationPoseWeight", "creationPoseWeight"])  # Publish creationPoseWeight attribute
 
+        cmds.select(module_grp)
+        cmds.addAttr(at="float", ln="hierarchicalScale")
+        cmds.connectAttr(f"{hook_grp}.scaleY", f"{module_grp}.hierarchicalScale")
+
 
     def UI(self, blueprint_UI_instance, parent_column_layout):
         self.blueprint_UI_instance = blueprint_UI_instance
@@ -598,6 +602,22 @@ class Blueprint:
             self.rehook(None)
         
         return hook_object
+    
+    def lock_phase_3(self, hook_object):
+        module_container = f"{self.module_namespace}:module_container"
+        if hook_object != None:
+            hook_object_module_node = utils.strip_leading_namespace(hook_object)
+            hook_obj_module = hook_object_module_node[0]
+            hook_obj_joint = hook_object_module_node[1].split("_translation_control")[0]
+            
+            hook_obj = f"{hook_obj_module}:blueprint_{hook_obj_joint}"
+            
+            parent_constraint = cmds.parentConstraint(hook_obj, f"{self.module_namespace}:HOOK_IN", mo=1, n=f"{self.module_namespace}:hook_parent_constraint")[0]
+            scale_constraint = cmds.scaleConstraint(hook_obj,  f"{self.module_namespace}:HOOK_IN", mo=1, n=f"{self.module_namespace}:hook_scale_constraint")[0]
+            
+            
+            utils.add_node_to_container(module_container, [parent_constraint, scale_constraint])
+        cmds.lockNode(module_container, l=1, lu=1)
         
         
 

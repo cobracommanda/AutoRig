@@ -659,5 +659,29 @@ class Blueprint:
         
         hook_object_pos = cmds.xform(hook_object, q=1, ws=1, t=1)
         cmds.xform(root_control, ws=1, a=1, t=hook_object_pos)
+        
+    def constrain_root_to_hook(self):
+        root_control = self.get_translation_control(f"{self.module_namespace}:{self.joint_info[0][0]}")
+        hook_object = self.find_hook_object()
+        
+        if hook_object == f"{self.module_namespace}:unhookedTarger":
+            return
+        
+        cmds.lockNode(self.container_name, l=0, lu=0)
+        
+        cmds.pointConstraint(hook_object, root_control, mo=0, n=f"{root_control}_hookConstraint")
+        cmds.setAttr(f"{root_control}.translate", l=1)
+        cmds.setAttr(f"{root_control}.visibility", l=0)
+        cmds.setAttr(f"{root_control}.visibility", 0)
+        cmds.setAttr(f"{root_control}.visibility", l=1)
+        
+        cmds.select(cl=1)
+        
+        cmds.lockNode(self.container_name, l=1, lu=1)
+        
+        
+        
+    def unconstrain_root_to_hook(self):
+        print("UNCONSTRAIN")
 
 

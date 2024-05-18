@@ -101,7 +101,7 @@ class Blueprint_UI(QtWidgets.QDialog):
             control_enable = True
 
         # Enable or disable buttons based on control_enable flag
-        buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 'Group Selected', 'Mirror Module', 'Delete']
+        buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constrain Root > Hook', 'Group Selected', 'Mirror Module', 'Delete']
         for button_text in buttons_to_enable:
             if button_text in self.button_references:
                 self.button_references[button_text].setEnabled(control_enable)
@@ -139,7 +139,7 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.module_name_edit_top = QtWidgets.QLineEdit()
 
         self.buttons = self.setup_buttons([
-            'Re-hook', 'Snap Root > Hook', 'Constraint Root > Hook', 'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
+            'Re-hook', 'Snap Root > Hook', 'Constrain Root > Hook', 'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
         ])
 
         self.lock_button = QtWidgets.QPushButton("Lock")
@@ -394,6 +394,12 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.rehook_module_setup()
         elif sender.text() == 'Snap Root > Hook':
             self.snap_root_to_hook()
+        elif sender.text() == 'Constrain Root > Hook':
+            self.constrain_root_to_hook()
+            sender.setText('Unconstrain')  # Change the button label
+        elif sender.text() == 'Unconstrain':
+            self.unconstrain_root_to_hook()
+            sender.setText('Constrain Root > Hook')  # Change the button label back
 
     def setup_buttons(self, button_texts):
         controls = []
@@ -460,5 +466,10 @@ class Blueprint_UI(QtWidgets.QDialog):
         
     def snap_root_to_hook(self, *args):
         self.module_instance.snap_root_to_hook()
-            
+        
+    def constrain_root_to_hook(self, *args):
+        self.module_instance.constrain_root_to_hook()
+        
+    def unconstrain_root_to_hook(self, *args):
+        self.module_instance.unconstrain_root_to_hook()
             

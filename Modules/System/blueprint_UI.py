@@ -204,7 +204,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.rotation_order_layout.addWidget(rotation_order_combo)
         except ValueError as e:
             # Handle the error if the joint does not exist
-            print(f"joint locked removing {joint}.rotateOrder: {e} ui element")
+            # print(f"joint locked removing {joint}.rotateOrder: {e} ui element")
+            pass
             # Optionally, you can add a message or log the error
 
 

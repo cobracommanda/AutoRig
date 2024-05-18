@@ -19,7 +19,7 @@ class Blueprint:
             partition_info = hook_obj_in.rpartition("_translation_control")
             if partition_info[1] != "" and partition_info[2] == "":
                 self.hook_object = hook_obj_in
-        print(self.hook_object)
+        
         
 
     def install_custom(self, joints):
@@ -579,12 +579,22 @@ class Blueprint:
         cmds.lockNode(self.container_name, l=1, lu=1)
         
         
-        
-    
     def find_hook_object(self):
         hook_constraint = f"{self.module_namespace}:hook_pointConstraint"
         source_attr = cmds.connectionInfo(f"{hook_constraint}.target[0].targetParentMatrix", sfd=1)
         source_node = str(source_attr).rpartition(".")[0]
         return source_node
+    
+    def find_hook_object_for_lock(self):
+        hook_object = self.find_hook_object()
+        
+        if hook_object == f"{self.module_namespace}:unhookedTarget":
+            hook_object = None
+        else:
+            self.rehook(None)
+        
+        return hook_object
+        
+        
 
 

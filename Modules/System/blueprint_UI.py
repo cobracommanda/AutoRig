@@ -392,6 +392,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.delete_module()
         elif sender.text() == "Re-hook":
             self.rehook_module_setup()
+        elif sender.text() == 'Snap Root > Hook':
+            self.snap_root_to_hook()
 
     def setup_buttons(self, button_texts):
         controls = []
@@ -455,5 +457,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             cmds.select(cl=1)
             
         self.create_script_job()
+        
+    def snap_root_to_hook(self, *args):
+        self.module_instance.snap_root_to_hook()
             
             

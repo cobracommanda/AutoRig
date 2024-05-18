@@ -356,6 +356,12 @@ class Blueprint:
 
         cmds.select(blueprint_grp, r=1)
         cmds.addAttr(at="bool", dv=0, ln="controlModulesInstalled", k=0)  # Add attribute for control modules
+        
+        hook_grp = cmds.group(em=1,n=f"{self.module_namespace}:HOOK_IN" )
+        for obj in [blueprint_grp, creation_pose_grp]:
+            cmds.parent(obj, hook_grp, a=1)
+        
+        
         setting_locator = cmds.spaceLocator(n=f"{self.module_namespace}:SETTINGS")[0]  # Create settings locator
         cmds.setAttr(f"{setting_locator}.visibility", 0)  # Hide settings locator
 
@@ -427,18 +433,16 @@ class Blueprint:
         utils.add_node_to_container(blueprint_container, blueprint_nodes, ihb=1)  # Add nodes to container
 
         module_grp = cmds.group(em=1, n=f"{self.module_namespace}:module_grp")  # Create module group
-        cmds.parent(setting_locator, module_grp, a=1)  # Parent settings locator to group
-
-        for group in [blueprint_grp, creation_pose_grp]:
-            cmds.parent(group, module_grp, a=1)  # Parent groups to module group
+        
+        for obj in [hook_grp, setting_locator]:
+            cmds.parent(obj, module_grp, a=1)  # Parent obj to module_grp
 
         module_container = cmds.container(n=f"{self.module_namespace}:module_container")  # Create module container
-        utils.add_node_to_container(module_container, [module_grp, setting_locator, blueprint_container], include_shapes=1)  # Add nodes to container
+        utils.add_node_to_container(module_container, [module_grp, hook_grp, setting_locator, blueprint_container], include_shapes=1)  # Add nodes to container
 
         cmds.container(module_container, e=1, pb=[f"{setting_locator}.activeModule", "activeModule"])  # Publish activeModule attribute
         cmds.container(module_container, e=1, pb=[f"{setting_locator}.creationPoseWeight", "creationPoseWeight"])  # Publish creationPoseWeight attribute
 
-        cmds.lockNode(module_container, l=1, lu=1)  # Lock container
 
     def UI(self, blueprint_UI_instance, parent_column_layout):
         self.blueprint_UI_instance = blueprint_UI_instance

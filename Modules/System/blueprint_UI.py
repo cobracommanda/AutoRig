@@ -405,6 +405,8 @@ class Blueprint_UI(QtWidgets.QDialog):
         elif sender.text() == 'Unconstrain Root':
             self.unconstrain_root_to_hook()
             sender.setText('Constrain Root > Hook')  # Change the button label back
+        elif sender.text() == 'Group Selected':
+            self.group_select()
             
 
     def setup_buttons(self, button_texts):
@@ -478,4 +480,10 @@ class Blueprint_UI(QtWidgets.QDialog):
         
     def unconstrain_root_to_hook(self, *args):
         self.module_instance.unconstrain_root_to_hook()
+        
+    def group_select(self, *args):
+        import System.GroupSelected as group_selected
+        importlib.reload(group_selected)
+        
+        group_selected.GroupSelected().show_UI()
             

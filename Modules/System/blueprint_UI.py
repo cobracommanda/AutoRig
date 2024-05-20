@@ -162,13 +162,13 @@ class Blueprint_UI(QtWidgets.QDialog):
         item_widget = QtWidgets.QWidget()
         item_layout = QtWidgets.QHBoxLayout(item_widget)
         item_layout.setSpacing(0)
-        item_widget.setFixedSize(380, 60)
+        item_widget.setFixedSize(380, 80)
 
         button = QtWidgets.QPushButton()
         icon = QtGui.QIcon(module_data[2])
         button.setIcon(icon)
-        button.setIconSize(QtCore.QSize(40, 40))
-        button.setFixedSize(50, 50)
+        button.setIconSize(QtCore.QSize(55, 55))
+        button.setFixedSize(60, 60)
         button.clicked.connect(partial(self.install_module, module))
 
         text_container = QtWidgets.QWidget()
@@ -178,9 +178,14 @@ class Blueprint_UI(QtWidgets.QDialog):
 
         title_label = QtWidgets.QLabel(module_data[0])
         title_label.setAlignment(QtCore.Qt.AlignCenter)
+        font = title_label.font()
+        font.setPointSize(12)  # Set the desired font size
+        title_label.setFont(font)
+        title_label.setFixedSize(320, 15)  # Set the fixed width and height
+        title_label.setStyleSheet("QLabel { margin-bottom: 5px; }")  # Add bottom margin
 
         text_area = QtWidgets.QTextEdit(module_data[1])
-        text_area.setFixedHeight(40)
+        text_area.setFixedHeight(50)
         text_area.setStyleSheet("QTextEdit { padding-bottom: 10px; }")
         text_area.setReadOnly(True)
 

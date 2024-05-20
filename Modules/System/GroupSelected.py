@@ -277,3 +277,8 @@ if __name__ == "__main__":
 
     group_dialog = GroupUI(None)
     group_dialog.show()
+
+
+class UngroupSelected:
+    def __init__(self):
+        print("Ungroup")

@@ -58,9 +58,17 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.module_instance = None
             selected_module_namespace = None
             current_module_file = None
+            
+            self.button_references['Ungroup'].setEnabled(False)
+
 
             if len(selected_nodes) == 1:
                 last_selected = selected_nodes[0]
+                
+                if last_selected.find("Group__") == 0:
+                    self.button_references['Ungroup'].setEnabled(True)
+                
+                
                 namespace_and_node = utils.strip_leading_namespace(last_selected)
                 if namespace_and_node:
                     namespace = namespace_and_node[0]
@@ -143,6 +151,7 @@ class Blueprint_UI(QtWidgets.QDialog):
 
         self.module_name_edit_top = QtWidgets.QLineEdit()
 
+        
         self.buttons = self.setup_buttons([
             'Re-hook', 'Snap Root > Hook', 'Constrain Root > Hook', 'Group Selected', 'Ungroup', 'Mirror Module', ' ', 'Delete', ''
         ])
@@ -412,6 +421,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             sender.setText('Constrain Root > Hook')  # Change the button label back
         elif sender.text() == 'Group Selected':
             self.group_select()
+        elif sender.text() == 'Ungroup':
+            self.ungroup_select()
             
 
     def setup_buttons(self, button_texts):
@@ -491,4 +502,9 @@ class Blueprint_UI(QtWidgets.QDialog):
         importlib.reload(group_selected)
         
         group_selected.GroupSelected().show_UI()
+        
+    def ungroup_select(self, *args):
+        import System.GroupSelected as group_selected
+        importlib.reload(group_selected)
+        group_selected.UngroupSelected()
             

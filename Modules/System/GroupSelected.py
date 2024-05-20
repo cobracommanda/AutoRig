@@ -110,15 +110,17 @@ class GroupUI(QtWidgets.QDialog):
 
     def accepted_option(self):
         group_name = self.lineedit.text()
-        position = "Last Selected" if self.position_last_selected_btn.isChecked() else "Average Position"
-        print(f"Group Name: {group_name}")
-        print(f"Positioned at: {position}")
-
+        # position = "Last Selected" if self.position_last_selected_btn.isChecked() else "Average Position"
+        # print(f"Group Name: {group_name}")
+        # print(f"Positioned at: {position}")
+        
+         
         if self.position_last_selected_btn.isChecked():
             self.position_last_selected()
         elif self.position_average_position_btn.isChecked():
             self.position_average_position()
-        self.accept()
+        if self.create_group(group_name) != None:
+            self.accept()
 
     def cancel_option(self):
         if self.group_selected_instance.temp_group_transform and cmds.objExists(self.group_selected_instance.temp_group_transform):
@@ -129,6 +131,58 @@ class GroupUI(QtWidgets.QDialog):
         print("Setting move tool...")
         cmds.setToolTo("moveSuperContext")
         print("Move tool set.")
+        
+    def create_group(self, group_name):
+        group_name = self.lineedit.text()
+        full_group_name = f"Group__{group_name}"
+        if cmds.objExists(full_group_name):
+            QtWidgets.QMessageBox.warning(None, "Name Conflict\nWarning", f"Group \\{group_name}\\ already exists")
+            return None
+        group_transform = cmds.rename(self.group_selected_instance.temp_group_transform, full_group_name)
+        
+        group_container = "Group_container"
+        if not cmds.objExists(group_container):
+            cmds.container(n=group_container)
+            
+        containers = [group_container]
+        
+        for obj in self.group_selected_instance.objects_to_group:
+            if obj.find("Group__") == 0:
+                continue
+            obj_namespace = utils.strip_leading_namespace(obj)[0]
+            containers.append(f"{obj_namespace}:module_container")
+        
+        for c in containers:
+            cmds.lockNode(c, l=0, lu=0)
+        
+        if len(self.group_selected_instance.objects_to_group) != 0:
+            temp_group = cmds.group(self.group_selected_instance.objects_to_group, a=1)
+            group_parent = cmds.listRelatives(temp_group, p=1)
+            
+            if group_parent != None:
+                cmds.parent(group_transform, group_parent[0], a=1)
+                
+            cmds.parent(self.group_selected_instance.objects_to_group, group_transform, a=1)
+            cmds.delete(temp_group)
+
+        self.add_group_to_container(group_transform)
+        
+        for c in containers:
+            cmds.lockNode(c, l=1, lu=1)
+            
+        cmds.setToolTo("moveSuperContext")
+        cmds.select(group_transform, r=1)
+        
+        return group_transform
+        
+    def add_group_to_container(self, group):
+        group_container = "Group_container"
+        utils.add_node_to_container(group_container, group, include_shapes=True)
+        group_name = group.partition("Group__")[2]
+        cmds.container(group_container, e=1, pb=[f"{group}.translate", f"{group_name}_t"])
+        cmds.container(group_container, e=1, pb=[f"{group}.rotate", f"{group_name}_r"])
+        cmds.container(group_container, e=1, pb=[f"{group}.globalScale", f"{group_name}_globalScale"])
+        
 
 
 class GroupSelected:

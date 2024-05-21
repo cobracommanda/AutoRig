@@ -2,7 +2,7 @@ import os  # Import os for file operations
 import maya.cmds as cmds  # Import Maya commands module
 import System.utils as utils  # Import custom utility functions
 from PySide2 import QtWidgets
-
+import importlib
 
 
 
@@ -488,6 +488,9 @@ class Blueprint:
             
         
         
+        module_transform = f"{self.module_namespace}:module_transform"
+        module_transform_parent = cmds.listRelatives(module_transform, p=1)
+        
         
         cmds.delete(self.container_name)
         
@@ -495,6 +498,17 @@ class Blueprint:
         cmds.namespace(set=":")
         cmds.namespace(rm=self.module_namespace)
         
+        if module_transform_parent != None:
+            parent_group = module_transform_parent[0]
+            children = cmds.listRelatives(parent_group, c=1)
+            children = cmds.ls(children, tr=1)
+            
+            if len(children) == 0:
+                cmds.select(parent_group, r=1)
+                import System.GroupSelected as group_selected
+                importlib.reload(group_selected)
+                group_selected.UngroupSelected()
+            
         
     def rename_module_instance(self, new_name):
         if new_name == self.user_specified_name:

@@ -179,6 +179,11 @@ class GroupUI(QtWidgets.QDialog):
         group_container = "Group_container"
         utils.add_node_to_container(group_container, group, include_shapes=True)
         group_name = group.partition("Group__")[2]
+        
+        # Ensure valid attribute alias names
+        if group_name[0].isdigit():
+            group_name = "_" + group_name
+            
         cmds.container(group_container, e=1, pb=[f"{group}.translate", f"{group_name}_t"])
         cmds.container(group_container, e=1, pb=[f"{group}.rotate", f"{group_name}_r"])
         cmds.container(group_container, e=1, pb=[f"{group}.globalScale", f"{group_name}_globalScale"])

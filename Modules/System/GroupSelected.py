@@ -280,5 +280,83 @@ if __name__ == "__main__":
 
 
 class UngroupSelected:
-    def __init__(self):
-        print("Ungroup")
+    def __init__(self) -> None:
+        selected_objects = cmds.ls(sl=1, tr=1)
+
+        filtered_groups = [obj for obj in selected_objects if obj.startswith("Group__")]
+
+        if not filtered_groups:
+            return
+
+        group_container = "Group_container"
+        modules = []
+
+        for group in filtered_groups:
+            modules.extend(self.find_child_modules(group))
+
+        module_containers = [group_container]
+        for module in modules:
+            module_containers.append(f"{module}:module_container")
+
+        for container in module_containers:
+            cmds.lockNode(container, l=0, lu=0)
+
+        self.process_groups(filtered_groups)
+
+        for container in module_containers:
+            cmds.lockNode(container, l=1, lu=1)
+
+        self.cleanup_empty_group_container(group_container)
+
+    def find_child_modules(self, group):
+        modules = []
+        children = cmds.listRelatives(group, c=1)
+
+        if children:
+            for child in children:
+                module_namespace_info = utils.strip_leading_namespace(child)
+                if module_namespace_info:
+                    modules.append(module_namespace_info[0])
+                elif child.startswith("Group__"):
+                    modules.extend(self.find_child_modules(child))
+
+        return modules
+
+    def process_groups(self, groups):
+        parent_groups = set()
+
+        for group in groups:
+            parent = cmds.listRelatives(group, parent=True)
+            if parent:
+                parent_groups.add(parent[0])
+
+            children = cmds.listRelatives(group, c=1)
+            if children and len(children) > 1:
+                cmds.ungroup(group, a=1)
+
+            for attr in ['t', 'r', 'globalScale']:
+                cmds.container("Group_container", e=1, ubp=f"{group}.{attr}")
+
+            cmds.delete(group)
+
+        self.cleanup_empty_groups(parent_groups)
+
+    def cleanup_empty_groups(self, parent_groups):
+        for parent in parent_groups:
+            children = cmds.listRelatives(parent, c=1)
+            if not children:
+                cmds.delete(parent)
+
+    def cleanup_empty_group_container(self, group_container):
+        container_content = cmds.container(group_container, q=True, nodeList=True)
+        if not container_content:
+            cmds.lockNode(group_container, l=0, lu=0)
+            cmds.delete(group_container)
+        else:
+            non_empty_nodes = [node for node in container_content if cmds.listRelatives(node, c=1)]
+            if not non_empty_nodes:
+                cmds.lockNode(group_container, l=0, lu=0)
+                cmds.delete(group_container)
+
+if __name__ == "__main__":
+    UngroupSelected()

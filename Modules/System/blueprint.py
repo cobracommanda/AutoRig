@@ -20,6 +20,8 @@ class Blueprint:
             if partition_info[1] != "" and partition_info[2] == "":
                 self.hook_object = hook_obj_in
         
+        self.module_can_be_mirrored = True
+        
         
 
     def install_custom(self, joints):
@@ -720,5 +722,8 @@ class Blueprint:
         root_control = self.get_translation_control(f"{self.module_namespace}:{self.joint_info[0][0]}")
         root_control_hook_constraint = f"{root_control}_hookConstraint"
         return cmds.objExists(root_control_hook_constraint)
+    
+    def can_module_be_mirrored(self):
+        return self.module_can_be_mirrored
 
 

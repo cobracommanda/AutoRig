@@ -22,7 +22,7 @@ class Blueprint_UI(QtWidgets.QDialog):
         self.setMinimumSize(400, 598)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)  # Ensure the widget is destroyed on close
         self.button_references = {}
-        self.ungroup_button = None
+        # self.ungroup_button = None
         self.create_widgets()
         self.create_layout()
         self.create_connections()
@@ -60,6 +60,7 @@ class Blueprint_UI(QtWidgets.QDialog):
             current_module_file = None
             
             self.button_references['Ungroup'].setEnabled(False)
+            self.button_references['Mirror Module'].setEnabled(False)
 
 
             if len(selected_nodes) == 1:
@@ -67,6 +68,8 @@ class Blueprint_UI(QtWidgets.QDialog):
                 
                 if last_selected.find("Group__") == 0:
                     self.button_references['Ungroup'].setEnabled(True)
+                    self.button_references['Mirror Module'].setEnabled(True)
+                    self.button_references['Mirror Module'].setText('Mirror Group')
                 
                 
                 namespace_and_node = utils.strip_leading_namespace(last_selected)
@@ -97,6 +100,10 @@ class Blueprint_UI(QtWidgets.QDialog):
                 self.module_instance = ModuleClass(user_specified_name, None)
                 self.module_name_edit_top.setText(user_specified_name)
                 
+                
+                self.button_references['Mirror Module'].setEnabled(True)
+                self.button_references['Mirror Module'].setText('Mirror Module')
+                
                 if self.module_instance.is_root_constrained():
                     self.button_references['Constrain Root > Hook'].setText('Unconstrain Root')
                 else:
@@ -114,7 +121,7 @@ class Blueprint_UI(QtWidgets.QDialog):
             control_enable = True
 
         # Enable or disable buttons based on control_enable flag
-        buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constrain Root > Hook', 'Group Selected', 'Mirror Module', 'Delete']
+        buttons_to_enable = ['Re-hook', 'Snap Root > Hook', 'Constrain Root > Hook', 'Group Selected',  'Delete']
         for button_text in buttons_to_enable:
             if button_text in self.button_references:
                 self.button_references[button_text].setEnabled(control_enable)
@@ -123,8 +130,8 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.button_references['Group Selected'].setEnabled(True)
 
         # "Ungroup" button is handled separately
-        if self.ungroup_button:
-            self.ungroup_button.setEnabled(False)
+        # if self.ungroup_button:
+        #     self.ungroup_button.setEnabled(False)
 
     def create_module_specific_controls(self):
         # Clear existing controls
@@ -428,6 +435,12 @@ class Blueprint_UI(QtWidgets.QDialog):
             self.group_select()
         elif sender.text() == 'Ungroup':
             self.ungroup_select()
+        elif sender.text() == 'Mirror Module':
+            self.mirror_selection()
+        elif sender.text() == 'Mirror Group':
+            self.mirror_selection()
+        
+            
             
 
     def setup_buttons(self, button_texts):
@@ -512,4 +525,9 @@ class Blueprint_UI(QtWidgets.QDialog):
         import System.GroupSelected as group_selected
         importlib.reload(group_selected)
         group_selected.UngroupSelected()
+            
+    def mirror_selection(self, *args):
+        import System.MirrorModule as mirror_module
+        importlib.reload(mirror_module)
+        mirror_module.MirrorModule()
             

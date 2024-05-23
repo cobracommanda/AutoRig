@@ -24,12 +24,12 @@ class Blueprint:
         self.mirrored = False
         
         
-
+    # Method to be overridden by derived class
     def install_custom(self, joints):
-        print("install_custom() method is not implemented by derived class")  # Method to be overridden
+        print("install_custom() method is not implemented by derived class")  
 
     def UI_custom(self):
-        pass  # Method to be overridden
+        pass  
 
     def lock_phase_1(self):
         """
@@ -44,7 +44,12 @@ class Blueprint:
         return module_info.
         """
         return None
-
+    
+    
+    def mirror_custom(self, original_module):
+        print("mirror_custom() method is not implemented by derived class")
+    
+    # Base Class Methods
     def install(self):
         cmds.namespace(setNamespace=":")  # Set namespace to root
         cmds.namespace(add=self.module_namespace)  # Add namespace
@@ -860,7 +865,7 @@ class Blueprint:
             index += 1
                 
             
-        
+        self.mirror_custom(original_module)
         
         
         

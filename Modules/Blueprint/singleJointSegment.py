@@ -64,3 +64,13 @@ class SingleJointSegment(blueprint_mod.Blueprint):
     def create_rotation_order_UI_control(self, joint):
         joint_name = utils.strip_all_namespaces(joint)[1]
         self.blueprint_UI_instance.add_rotation_order_widget(f"Joint: {joint_name}", ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"], joint)
+        
+    def mirror_custom(self, original_module):
+        joint_name = self.joint_info[0][0]
+        original_joint = f"{original_module}:{joint_name}"
+        new_joint = f"{self.module_namespace}:{joint_name}"
+        
+        original_orientation_control = self.get_orientation_control(original_joint)
+        new_orientation_control = self.get_orientation_control(new_joint)
+        
+        cmds.setAttr(f"{new_orientation_control}.rotateX", cmds.getAttr(f"{original_orientation_control}.rotateX"))

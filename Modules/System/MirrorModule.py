@@ -748,6 +748,40 @@ class MirrorModule(QtWidgets.QDialog):
             if module_name in valid_module_names:
                 index = valid_module_names.index(module_name)
                 module.append(valid_modules[index])
+                
+        mirror_module_progress_increment = mirror_modules_progress_stage1_proportion/len(self.module_info)
+        for module in self.module_info:
+            user_specified_name = module[0].partition("__")[2]
+            mod = __import__(f"Blueprint.{module[5]}", {}, {}, [module[5]])
+            importlib.reload(mod)
+            
+            ModuleClass = getattr(mod, mod.CLASS_NAME)
+            module_inst = ModuleClass(user_specified_name, None)
+            
+            hook_object = module_inst.find_hook_object()
+            new_hook_object = None
+            hook_module = utils.strip_leading_namespace(hook_object)[0]
+            hook_found = False
+            
+            for m in self.module_info:
+                if hook_module == m[0]:
+                    hook_found = True
+                    
+                    if m == module:
+                        continue
+                    
+                    hook_object_name = utils.strip_leading_namespace(hook_object)[1]
+                    new_hook_object = f"{m[1]}:{hook_object_name}"
+            
+            if not hook_found:
+                new_hook_object = hook_object
+                
+            module.append(new_hook_object)
+            
+            hook_constrained = module_inst.is_root_constrained()
+            module.append(hook_constrained)
+            mirror_module_progress += mirror_module_progress_increment
+            cmds.progressWindow(mirror_module_progress_UI, e=1, pr=mirror_module_progress)
             
         cmds.progressWindow(mirror_module_progress_UI, e=1, ep=1)
         utils.force_scene_update()

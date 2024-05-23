@@ -599,7 +599,7 @@ class MirrorModule(QtWidgets.QDialog):
 
         cmds.setParent(self.UI_elements['top_column_layout'])
         cmds.separator()
-        cmds.text(l="Mirrored Name (s):")
+        cmds.text(l="Mirrored Name(s):")
         
         column_width = scroll_width / 2
         self.UI_elements['module_name_row_column'] = cmds.rowColumnLayout(nc=2, cat=(1, "right", 0), cw=[(1, column_width), (2, column_width)])
@@ -731,5 +731,24 @@ class MirrorModule(QtWidgets.QDialog):
         self.mirror_modules()
 
     def mirror_modules(self):
-        print(self.module_info)
+        mirror_module_progress_UI = cmds.progressWindow(t="Mirroring Module(s)", st="This may take a few minutes", ii=0)
+        mirror_module_progress = 0
+        
+        mirror_modules_progress_stage1_proportion = 15
+        mirror_modules_progress_stage2_proportion = 70
+        mirror_modules_progress_stage3_proportion = 10
+        
+        module_name_info = utils.find_all_module_names("/Modules/Blueprint")
+        valid_modules = module_name_info[0]
+        valid_module_names = module_name_info[1]
+        
+        for module in self.module_info:
+            module_name = module[0].partition("__")[0]
+            
+            if module_name in valid_module_names:
+                index = valid_module_names.index(module_name)
+                module.append(valid_modules[index])
+            
+        cmds.progressWindow(mirror_module_progress_UI, e=1, ep=1)
+        utils.force_scene_update()
         

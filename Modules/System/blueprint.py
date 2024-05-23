@@ -21,6 +21,7 @@ class Blueprint:
                 self.hook_object = hook_obj_in
         
         self.module_can_be_mirrored = True
+        self.mirrored = False
         
         
 
@@ -725,5 +726,21 @@ class Blueprint:
     
     def can_module_be_mirrored(self):
         return self.module_can_be_mirrored
+    
+    def mirror(self, original_module, mirror_plane, rotation_function, translation_function):
+        self.mirrored = True
+        self.original_module = original_module
+        self.mirror_plane = mirror_plane
+        self.rotation_function = rotation_function
+        
+        print( self.mirrored)
+        print( self.original_module)
+        print( self.mirror_plane)
+        print( self.rotation_function)
+        print( translation_function)
+        
+        
+        
+        
 
 

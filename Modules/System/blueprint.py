@@ -806,6 +806,60 @@ class Blueprint:
         
         self.install()
         
+        cmds.lockNode(self.container_name,l=0, lu=0)
+        
+        for joint_info in self.joint_info:
+            joint_name = joint_info[0]
+            
+            
+            original_joint = f"{self.original_module}:{joint_name}"
+            new_joint = f"{self.module_namespace}:{joint_name}"
+            
+            original_rotation_order = cmds.getAttr(f"{original_joint}.rotateOrder")
+            cmds.setAttr(f"{new_joint}.rotateOrder", original_rotation_order)
+            
+        index = 0
+        for joint_info in self.joint_info:
+            mirror_pole_vector_locator = False
+            if index < len(self.joint_info) - 1:
+                mirror_pole_vector_locator = True
+                
+            joint_name = joint_info[0]
+            original_joint = f"{self.original_module}:{joint_name}"
+            new_joint = f"{self.module_namespace}:{joint_name}"
+            
+            original_translation_control = self.get_translation_control(original_joint)
+            new_translation_control = self.get_translation_control(new_joint)
+        
+            original_translation_control_position = cmds.xform(original_translation_control, q=1, ws=1, t=1)
+            
+            if self.mirror_plane == "YZ":
+                original_translation_control_position[0] *= -1  
+            elif self.mirror_plane == "XZ":
+                original_translation_control_position[1] *= -1
+            elif self.mirror_plane == "XY":
+                original_translation_control_position[2] *= -1
+                
+                
+            cmds.xform(new_translation_control, ws=1, a=1, t=original_translation_control_position)
+            
+            if mirror_pole_vector_locator:
+                original_pole_vector_locator = f"{original_translation_control}_poleVectorLocator"
+                new_pole_vector_locator = f"{new_translation_control}_poleVectorLocator"
+                original_pole_vector_locator_position = cmds.xform(original_pole_vector_locator, q=1, ws=1, t=1)
+                
+                if self.mirror_plane == "YZ":
+                    original_pole_vector_locator_position[0] *= -1  
+                elif self.mirror_plane == "XZ":
+                    original_pole_vector_locator_position[1] *= -1
+                elif self.mirror_plane == "XY":
+                    original_pole_vector_locator_position[2] *= -1
+                    
+                cmds.xform(new_pole_vector_locator, ws=1, a=1, t=original_pole_vector_locator_position)
+                
+            index += 1
+                
+            
         
         
         

@@ -85,6 +85,44 @@ class Blueprint:
                 cmds.joint(parent_joint, edit=True, orientJoint="xyz", sao="yup")  # Orient joint
 
             index += 1
+        
+        if self.mirrored:
+            mirror_XY = False
+            mirror_YZ = False
+            mirror_XZ = False
+            
+            if self.mirror_plane == "XY":
+                mirror_XY = True
+            elif self.mirror_plane == "YZ":
+                mirror_YZ = True
+            elif self.mirror_plane == "XZ":
+                mirror_XZ = True
+                
+            mirror_behavior = False
+            if self.rotation_function == "behavior":
+                mirror_behavior = True
+            
+            mirror_nodes = cmds.mirrorJoint(joints[0], mxy=mirror_XY, myz=mirror_YZ, mxz=mirror_XZ, mb=mirror_behavior)
+            cmds.delete(joints)
+            
+            mirror_joints = []
+            
+            for node in mirror_nodes:
+                if cmds.objectType(node, isa="joint"):
+                    mirror_joints.append(node)
+                else:
+                    cmds.delete(node)
+            
+            index = 0
+            
+            for joint in mirror_joints:
+                joint_name = self.joint_info[index][0]
+                new_joint_name = cmds.rename(joint, f"{self.module_namespace}:{joint_name}")
+                self.joint_info[index][1] = cmds.xform(new_joint_name, q=1, ws=1, t=1)
+                
+                index += 1
+            # return
+                
 
         cmds.parent(joints[0], self.joints_grp, absolute=True)  # Parent first joint to joints group
 
@@ -156,6 +194,10 @@ class Blueprint:
         ik_handle = ik_nodes['ik_handle']
         root_locator = ik_nodes['root_locator']
         end_locator = ik_nodes['end_locator']
+        
+        if self.mirrored:
+            if self.mirror_plane == "XZ":
+                cmds.setAttr(f"{ik_handle}.twist", 90)
 
         child_point_constraint = cmds.pointConstraint(child_translation_control, end_locator, mo=0, n=f"{end_locator}_pointConstraint")[0]  # Create point constraint
 
@@ -204,11 +246,40 @@ class Blueprint:
 
         self.module_transform = cmds.rename("controlGroup_control", f"{self.module_namespace}:module_transform")  # Rename control group
         cmds.xform(self.module_transform, ws=1, a=1, t=root_pos)  # Set transform position
+        
+        
+        if self.mirrored:
+            duplicate_transform = cmds.duplicate(f"{self.original_module}:module_transform", po=1, n="TEMP_TRANSFORM")[0]
+            empty_group = cmds.group(em=1)
+            cmds.parent(duplicate_transform, empty_group, a=1)
+            
+            scale_attr = ".scaleX"
+            if self.mirror_plane == "XZ":
+                scale_attr = ".scaleY"
+            elif self.mirror_plane =="XY":
+                scale_attr = ".scaleZ"
+                
+            cmds.setAttr(f"{empty_group}{scale_attr}", -1)
+            
+            parent_constraint = cmds.parentConstraint(duplicate_transform, self.module_transform, mo=False)
+            cmds.delete(parent_constraint)
+            cmds.delete(empty_group)
+            
+            temp_locator = cmds.spaceLocator()[0]
+            scale_constraint = cmds.scaleConstraint(f"{self.original_module}:module_transform", temp_locator, mo=0)[0]
+            scale = cmds.getAttr(f"{temp_locator}.scaleX")
+            cmds.delete([temp_locator, scale_constraint])
+            
+            print(f"my scale {scale}")
+            cmds.xform(self.module_transform, os=1, scale=[scale, scale, scale])
+        
 
         utils.add_node_to_container(self.container_name, self.module_transform, ihb=1)  # Add transform to container
 
         cmds.connectAttr(f"{self.module_transform}.scaleY", f"{self.module_transform}.scaleX")  # Connect scale attributes
         cmds.connectAttr(f"{self.module_transform}.scaleY", f"{self.module_transform}.scaleZ")
+        
+        
 
         cmds.aliasAttr("globalScale", f"{self.module_transform}.scaleY")  # Alias globalScale attribute
 
@@ -733,11 +804,8 @@ class Blueprint:
         self.mirror_plane = mirror_plane
         self.rotation_function = rotation_function
         
-        print( self.mirrored)
-        print( self.original_module)
-        print( self.mirror_plane)
-        print( self.rotation_function)
-        print( translation_function)
+        self.install()
+        
         
         
         

@@ -323,6 +323,25 @@ class MirrorModule(QtWidgets.QDialog):
             mirror_module_progress += mirror_module_progress_increment
             cmds.progressWindow(mirror_module_progress_UI, e=1, pr= mirror_module_progress)
             
+        mirror_module_progress_increment = mirror_modules_progress_stage3_proportion/len(self.module_info)
+        
+        for module in self.module_info:
+            new_user_specified_name = module[1].partition("__")[2]
+            mod = __import__(f"Blueprint.{module[5]}", {}, {}, [module[5]])
+            importlib.reload(mod)
+            
+            ModuleClass = getattr(mod, mod.CLASS_NAME)
+            module_inst = ModuleClass(new_user_specified_name, None)
+
+            module_inst.rehook(module[6])
+            
+            if hook_constrained:
+                module_inst.constrain_root_to_hook()
+                
+            mirror_module_progress += mirror_module_progress_increment
+            cmds.progressWindow(mirror_module_progress_UI, e=1, pr=mirror_module_progress)
+        
+            
         cmds.progressWindow(mirror_module_progress_UI, e=1, ep=1)
         utils.force_scene_update()
         

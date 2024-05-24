@@ -904,6 +904,7 @@ class Blueprint:
             
         for c in [f"{original_module}:module_container", self.container_name]:
             cmds.lockNode(c, l=1, lu=1)
+            
         cmds.select(cl=1)
             
             

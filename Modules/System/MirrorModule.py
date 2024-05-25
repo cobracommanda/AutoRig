@@ -1,8 +1,9 @@
-from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2 import QtCore, QtWidgets
 import maya.cmds as cmds
 import System.utils as utils
 import importlib
 importlib.reload(utils)
+
 
 class MirrorModule(QtWidgets.QDialog):
     def __init__(self):
@@ -17,6 +18,7 @@ class MirrorModule(QtWidgets.QDialog):
         self.group = None
         if first_selected.find("Group__") == 0:
             self.modules = self.find_sub_modules(first_selected)
+            self.group = first_selected
         else:
             module_namespace_info = utils.strip_leading_namespace(first_selected)
             self.modules.append(module_namespace_info[0])
@@ -256,6 +258,11 @@ class MirrorModule(QtWidgets.QDialog):
             
         cmds.deleteUI(self.UI_elements['window'])
         self.mirror_modules()
+        
+ 
+
+
+
 
     def mirror_modules(self):
         mirror_module_progress_UI = cmds.progressWindow(t="Mirroring Module(s)", st="This may take a few minutes", ii=0)
@@ -341,7 +348,47 @@ class MirrorModule(QtWidgets.QDialog):
             mirror_module_progress += mirror_module_progress_increment
             cmds.progressWindow(mirror_module_progress_UI, e=1, pr=mirror_module_progress)
         
+        if self.group is not None:
+            print(f"======> {self.group}")
+            cmds.lockNode("Group_container", l=0, lu=0)
             
+            group_parent = cmds.listRelatives(self.group, p=1)
+            
+            if group_parent is not None:
+                group_parent = group_parent[0]
+                
+            self.process_group(self.group, group_parent)
+            
+            cmds.lockNode("Group_container", l=1, lu=1)
+            cmds.select(cl=1)  
+        
         cmds.progressWindow(mirror_module_progress_UI, e=1, ep=1)
         utils.force_scene_update()
         
+    def process_group(self, group, parent):
+        import System.GroupSelected as groupSelected
+        importlib.reload(groupSelected)
+        
+        temp_group = cmds.duplicate(group, po=1, ic=1)[0]
+        empty_group = cmds.group(em=1)
+        cmds.parent(temp_group, empty_group, a=1)
+        
+        scale_axis = ".scaleX"
+        
+        if self.mirror_plane == "XZ":
+            scale_axis = ".scaleY"
+        elif self.mirror_plane == "XY":
+            scale_axis = ".scaleZ"
+        
+        cmds.setAttr(f"{empty_group}{scale_axis}", -1)
+        
+        # Create an instance of GroupSelected
+        group_selected_instance = groupSelected.GroupSelected()
+        
+        # Pass the instance to GroupUI
+        instance = groupSelected.GroupUI(group_selected_instance)
+       
+        group_suffix = group.partition("__")[2]
+        new_group = instance.create_group_at_specified(f"{group_suffix}_mirror", temp_group, parent)
+        
+        cmds.lockNode("Group_container", l=0, lu=1)

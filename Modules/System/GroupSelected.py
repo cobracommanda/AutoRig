@@ -132,8 +132,26 @@ class GroupUI(QtWidgets.QDialog):
         cmds.setToolTo("moveSuperContext")
         print("Move tool set.")
         
-    def create_group(self, group_name):
-        group_name = self.lineedit.text()
+        
+    def create_group_at_specified(self, name, target_group, parent):
+        print(self.group_selected_instance.create_temporary_group_representation())
+        print(name, target_group, parent)
+        parent_constraint = cmds.parentConstraint(target_group, self.group_selected_instance.temp_group_transform, mo=0)[0]
+        cmds.delete(parent_constraint)
+        
+        scale = cmds.getAttr(f"{target_group}.globalScale")
+        cmds.setAttr(f"{self.group_selected_instance.temp_group_transform}.globalScale", scale)
+        
+        if parent != None:
+            cmds.parent( self.group_selected_instance.temp_group_transform, parent, a=1)
+            
+        new_group = self.create_group(name)
+        return new_group
+        
+        
+    def create_group(self, group_name=None):
+        if group_name is None:
+            group_name = self.lineedit.text()
         full_group_name = f"Group__{group_name}"
         if cmds.objExists(full_group_name):
             QtWidgets.QMessageBox.warning(None, "Name Conflict\nWarning", f"Group \\{group_name}\\ already exists")
@@ -187,6 +205,9 @@ class GroupUI(QtWidgets.QDialog):
         cmds.container(group_container, e=1, pb=[f"{group}.translate", f"{group_name}_t"])
         cmds.container(group_container, e=1, pb=[f"{group}.rotate", f"{group_name}_r"])
         cmds.container(group_container, e=1, pb=[f"{group}.globalScale", f"{group_name}_globalScale"])
+        
+        
+        
         
 
 
